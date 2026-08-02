@@ -18,10 +18,14 @@ vive sólo en la cabeza de alguien.
 
 ## Estado
 
-Terminada la exploración de fuentes de datos, con las tres fuentes elegidas y
-validadas. Todavía no empezó el análisis.
+**Hay visualización andando.** Están hechos el cruce de líneas con cuadras
+(Paso A) y el mapa web. Falta el acceso caminando (Paso B) y el índice de cuadra
+ideal (Paso C).
 
-Dos hallazgos ordenan todo lo demás:
+De las 31.961 cuadras de la Ciudad, **19.070 (59,7 %) no tienen ningún
+colectivo**. El máximo son 29 líneas, en Constitución.
+
+Dos hallazgos sobre los datos ordenan todo lo demás:
 
 1. **El dataset de recorridos de EPOK, que fue el punto de partida, no sirve
    como fuente geométrica.** Sus vértices están separados 261 m (una cuadra son
@@ -39,7 +43,8 @@ El detalle y el plan están en [docs/02-data-sources.md](docs/02-data-sources.md
 | Documento | Contenido |
 |---|---|
 | [docs/01-epok-dataset.md](docs/01-epok-dataset.md) | Qué contiene el dataset EPOK, sus atributos y sus tres advertencias |
-| [docs/02-data-sources.md](docs/02-data-sources.md) | Comparación de las fuentes disponibles y el plan de análisis propuesto |
+| [docs/02-data-sources.md](docs/02-data-sources.md) | Comparación de las fuentes disponibles y el plan de análisis |
+| [docs/03-attribution.md](docs/03-attribution.md) | Cómo se atribuyen líneas a cuadras, y cuánto creerle |
 
 ## Fuentes de datos
 
@@ -59,6 +64,7 @@ data/       Datasets descargados (fuente de verdad, no se editan)
 docs/       Lo que fuimos aprendiendo de los datos
 scripts/    Un script por pregunta que nos hicimos
 output/     La salida de cada script, versionada
+web/        La visualización: un HTML y sus datos
 ```
 
 ## Cómo reproducir
@@ -74,6 +80,11 @@ python3 -m venv .venv
 
 # 3. correr el análisis y guardar las salidas en output/
 bash scripts/run_all.sh
+```
+
+```bash
+# 4. abrir la visualización
+bash scripts/serve.sh          # http://localhost:8000
 ```
 
 `run_all.sh` usa `.venv/bin/python` si existe, y si no el `python3` del sistema;
@@ -95,6 +106,9 @@ también corre solo:
 | [04_coverage.py](scripts/04_coverage.py) | ¿Es de verdad "los colectivos de la Ciudad"? |
 | [05_geometry_quality.py](scripts/05_geometry_quality.py) | ¿Sirve la geometría para atribuir colectivos a calles? Compara las tres fuentes. |
 | [06_gtfs_freshness.py](scripts/06_gtfs_freshness.py) | ¿Cuánto sirve todavía el GTFS de 2019? Mide la cobertura de cada recorrido vigente. |
+| [07_attribute_lines.py](scripts/07_attribute_lines.py) | **Paso A**: qué líneas pasan por cada una de las 31.961 cuadras. |
+| [08_build_web_data.py](scripts/08_build_web_data.py) | Prepara los GeoJSON que consume la página. |
+| [serve.sh](scripts/serve.sh) | Levanta la visualización en localhost. |
 | [common.py](scripts/common.py) | Rutas, carga del dataset y definición del CRS. |
 
 ---
@@ -135,10 +149,31 @@ Se descubrió además que la distancia mediana entre un vértice de EPOK y la tr
 GTFS de su línea es de 0,1 m: **EPOK es una versión decimada de la misma
 geometría base**.
 
+### 2026-08-02 — Paso A: líneas por cuadra, y la primera visualización
+
+Se cruzaron las trazas del GTFS con las 31.961 cuadras del callejero. El método
+no es un buffer a secas: muestrea cada cuadra cada 10 m, ignora 15 m en cada
+esquina y exige que la traza sea **paralela** a la cuadra. Sin ese filtro de
+rumbo, cada esquina le regalaría líneas a la calle transversal.
+
+Resultado: **19.070 cuadras (59,7 %) sin ningún colectivo**, 12.891 con al menos
+uno, máximo 29 líneas. Validado por dos vías independientes: la jerarquía de vía
+del callejero ordena como debe (distribuidoras principales 4,58 líneas de
+promedio, vías locales 0,56, pasajes 1 %), y el recorrido reconstruido de la
+línea 65 coincide con el mapa oficial del GCBA.
+→ [docs/03-attribution.md](docs/03-attribution.md)
+
+Se armó además la visualización en [web/](web/): mapa MapLibre con las cuadras
+coloreadas por cantidad de líneas y un desplegable para ver el recorrido de
+cualquiera de las 129 líneas. Al elegir una, dibuja las cuadras atribuidas como
+banda ancha y encima la traza del GTFS, así el control de calidad se puede hacer
+a ojo sobre el mapa.
+
 Próximos pasos, en orden:
 
-- [ ] Paso A: atribuir líneas a cuadras (buffer + filtro por rumbo), validando
-      contra la línea 65.
 - [ ] Paso B: grafo peatonal sobre el callejero y acceso a paradas a 400 m.
-- [ ] Paso C: índice de cuadra ideal, con pesos ajustables.
-- [ ] Paso D: mapa web con MapLibre.
+- [ ] Paso C: índice de cuadra ideal, con pesos ajustables en la página.
+- [ ] Excluir autopistas del índice: van elevadas sobre calles de superficie y
+      el análisis en dos dimensiones no puede separarlas.
+- [ ] Pesar el ruido por colectivos/hora usando `frequencies.txt`, no por
+      cantidad de líneas.

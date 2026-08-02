@@ -40,6 +40,10 @@ if "$PY" -c "import pyproj" 2>/dev/null; then
   run_step 04_coverage.py
   # Compara las fuentes de geometría; avisa solo si falta alguna descarga.
   run_step 05_geometry_quality.py
+  run_step 06_gtfs_freshness.py
+  # El paso 07 tarda un par de minutos: cruza 31.961 cuadras con las trazas.
+  run_step 07_attribute_lines.py
+  run_step 08_build_web_data.py
 else
   echo "==> 03_crs.py y 04_coverage.py salteados: falta pyproj"
   echo "    instalalo con: pip install -r requirements.txt"
