@@ -1,0 +1,40 @@
+
+======================================================================
+Separación entre vértices, por fuente
+======================================================================
+Referencia: una cuadra porteña mide ~110 m. Si la mediana está muy
+por encima de eso, la traza no sigue las calles.
+
+EPOK  (getGeoLayer, actual)
+  recorridos              : 1027
+  puntos por recorrido    : 76 en promedio
+  separación entre puntos : mediana  260.8 m
+                            p90     1025.5 m
+                            máx     11757.6 m
+  segmentos > 200 m       :  58.2 %
+  segmentos > 500 m       :  28.9 %
+
+GTFS  (Buenos Aires Data, 2019)
+  recorridos              : 2066
+  puntos por recorrido    : 366 en promedio
+  separación entre puntos : mediana   55.4 m
+                            p90      134.1 m
+                            máx     35140.5 m
+  segmentos > 200 m       :   2.7 %
+  segmentos > 500 m       :   0.2 %
+
+CNRT  (KML jurisdicción nacional, 2023)
+  recorridos              : 1128
+  puntos por recorrido    : 366 en promedio
+  separación entre puntos : mediana   86.1 m
+                            p90      156.6 m
+                            máx     1527.5 m
+  segmentos > 200 m       :   4.8 %
+  segmentos > 500 m       :   0.2 %
+
+======================================================================
+Conclusión
+======================================================================
+EPOK sirve como padrón de líneas vigentes, pero su geometría está
+demasiado simplificada para atribuir colectivos a calles.
+Para eso hay que usar el GTFS (o el KML del CNRT como control).
