@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colectivos de Buenos Aires, cuadra por cuadra</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  :root {
+    color-scheme: light;
+    --surface:    #fcfcfb;
+    --plane:      #f9f9f7;
+    --ink:        #0b0b0b;
+    --ink-2:      #52514e;
+    --ink-muted:  #898781;
+    --border:     rgba(11, 11, 11, 0.10);
+    /* Rampa secuencial de una sola tonalidad, validada para esta superficie. */
+    --n0: #86b6ef;  --n1: #5598e7;  --n2: #2a78d6;  --n3: #1c5cab;  --n4: #0d366b;
+    /* Color de la línea seleccionada: separado de toda la rampa (ΔE CVD 24,7). */
+    --pick: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface:   #1a1a19;
+      --plane:     #0d0d0d;
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --ink-muted: #898781;
+      --border:    rgba(255, 255, 255, 0.10);
+      --n0: #184f95;  --n1: #2a78d6;  --n2: #5598e7;  --n3: #86b6ef;  --n4: #b7d3f6;
+      --pick: #d95926;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--plane);
+  }
+  #map { position: absolute; inset: 0; }
+
+  #panel {
+    position: absolute;
+    top: 12px; left: 12px;
+    width: 290px;
+    max-height: calc(100% - 24px);
+    overflow-y: auto;
+    z-index: 1;
+    padding: 14px 16px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+  }
+  h1 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+  .sub { margin: 0 0 14px; color: var(--ink-2); font-size: 12px; }
+
+  label { display: block; margin-bottom: 5px; font-size: 12px; color: var(--ink-2); }
+  select {
+    width: 100%;
+    padding: 6px 8px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+  }
+  #pick-info {
+    margin: 8px 0 0;
+    min-height: 1.45em;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  #pick-info b { color: var(--ink); font-weight: 600; }
+
+  .section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .section h2 { margin: 0 0 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .swatch { flex: none; width: 22px; border-radius: 2px; }
+  .legend-row span { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  footer { margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--ink-muted); }
+  footer a { color: inherit; }
+
+  .maplibregl-popup-content {
+    padding: 10px 12px;
+    font: 13px/1.45 system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .maplibregl-popup-tip { border-top-color: var(--surface) !important; }
+  .pop-street { font-weight: 600; margin-bottom: 1px; }
+  .pop-meta { color: var(--ink-muted); font-size: 12px; margin-bottom: 6px; }
+  .pop-lines { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .pop-none { color: var(--ink-muted); font-size: 12px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <h1>Colectivos, cuadra por cuadra</h1>
+  <p class="sub">31.961 cuadras de la Ciudad, con las líneas que pasan por cada una.</p>
+
+  <label for="line">Ver el recorrido de una línea</label>
+  <select id="line"><option value="">— ninguna —</option></select>
+  <p id="pick-info"></p>
+
+  <div class="section">
+    <h2>Líneas que pasan por la cuadra</h2>
+    <div id="legend"></div>
+  </div>
+
+  <footer>
+    Recorridos y paradas: GTFS de
+    <a href="https://data.buenosaires.gob.ar/dataset/colectivos-gtfs-frequency">Buenos Aires Data</a>
+    (2019). Callejero y padrón de líneas: Gobierno de la Ciudad, 2026.
+    Hacé clic en cualquier cuadra para ver el detalle.
+  </footer>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+// Los cortes de la escala. El 0 es su propia clase porque es lo que más
+// interesa: las cuadras por las que no pasa ningún colectivo.
+const BREAKS = [
+  { min: 0,  label: 'ninguna',   varName: '--n0' },
+  { min: 1,  label: '1 a 2',     varName: '--n1' },
+  { min: 3,  label: '3 a 5',     varName: '--n2' },
+  { min: 6,  label: '6 a 10',    varName: '--n3' },
+  { min: 11, label: '11 o más',  varName: '--n4' },
+];
+
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
+
+const basemap = () => darkMode.matches
+  ? 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  : 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+// ["step", n, c0, 1, c1, 3, c2, …] — un color por clase.
+function colorExpression() {
+  const expr = ['step', ['get', 'n'], css(BREAKS[0].varName)];
+  for (const b of BREAKS.slice(1)) expr.push(b.min, css(b.varName));
+  return expr;
+}
+
+// El grosor repite la misma escala que el color. Es codificación redundante a
+// propósito: a escala de ciudad las 19.070 cuadras sin colectivo tapan todo, y
+// con el ancho los corredores se leen incluso sin distinguir los tonos.
+const WIDTHS = [0.35, 0.7, 1.1, 1.6, 2.2];
+function widthExpression() {
+  const atZoom = factor => {
+    const expr = ['step', ['get', 'n'], WIDTHS[0] * factor];
+    BREAKS.slice(1).forEach((b, i) => expr.push(b.min, WIDTHS[i + 1] * factor));
+    return expr;
+  };
+  return ['interpolate', ['linear'], ['zoom'],
+    11, atZoom(1), 14, atZoom(2.2), 17, atZoom(6)];
+}
+
+const map = new maplibregl.Map({
+  container: 'map',
+  center: [-58.442, -34.615],
+  zoom: 11.4,
+  minZoom: 10,
+  maxZoom: 18,
+  // Guarda la posición en la URL, así se puede compartir una vista concreta.
+  hash: true,
+  style: {
+    version: 8,
+    sources: {
+      base: {
+        type: 'raster',
+        tiles: [basemap()],
+        tileSize: 256,
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+      },
+    },
+    layers: [{ id: 'base', type: 'raster', source: 'base' }],
+  },
+});
+
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'bottom-right');
+
+map.on('load', async () => {
+  map.addSource('blocks', { type: 'geojson', data: 'data/blocks.geojson' });
+  map.addSource('routes', { type: 'geojson', data: 'data/routes.geojson' });
+
+  // Todas las cuadras, coloreadas por cuántas líneas pasan.
+  map.addLayer({
+    id: 'blocks',
+    type: 'line',
+    source: 'blocks',
+    paint: {
+      'line-color': colorExpression(),
+      'line-width': widthExpression(),
+      'line-opacity': 0.9,
+    },
+  });
+
+  // Las cuadras atribuidas a la línea elegida. Se dibujan gruesas y debajo del
+  // recorrido para poder comparar una cosa con la otra: si la atribución está
+  // bien, la traza cae justo encima.
+  map.addLayer({
+    id: 'blocks-picked',
+    type: 'line',
+    source: 'blocks',
+    filter: ['==', ['get', 'n'], -1],
+    paint: {
+      'line-color': css('--pick'),
+      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 3, 14, 6, 17, 14],
+      'line-opacity': 0.35,
+    },
+  });
+
+  // El recorrido según el GTFS.
+  map.addLayer({
+    id: 'route-picked',
+    type: 'line',
+    source: 'routes',
+    filter: ['==', ['get', 'linea'], ''],
+    paint: {
+      'line-color': css('--pick'),
+      'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.4, 14, 2, 17, 3],
+    },
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+  });
+
+  // Capa invisible sólo para el clic: las cuadras sin colectivo se dibujan muy
+  // finas y serían imposibles de acertar con el mouse.
+  map.addLayer({
+    id: 'blocks-hit',
+    type: 'line',
+    source: 'blocks',
+    paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 10 },
+  });
+
+  buildLegend();
+
+  // Desplegable de líneas.
+  const lines = await fetch('data/lines.json').then(r => r.json());
+  const select = document.getElementById('line');
+  for (const line of lines) {
+    const option = document.createElement('option');
+    option.value = line.linea;
+    option.textContent = `Línea ${Number(line.linea)}`;
+    option.dataset.cuadras = line.cuadras;
+    select.appendChild(option);
+  }
+
+  const info = document.getElementById('pick-info');
+  select.addEventListener('change', () => {
+    const code = select.value;
+    map.setFilter('route-picked', ['==', ['get', 'linea'], code]);
+    map.setFilter('blocks-picked',
+      code ? ['in', code, ['get', 'l']] : ['==', ['get', 'n'], -1]);
+    const chosen = select.selectedOptions[0];
+    info.innerHTML = code
+      ? `Recorre <b>${chosen.dataset.cuadras}</b> cuadras de la Ciudad.`
+      : '';
+  });
+
+  // Detalle de una cuadra.
+  const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '260px' });
+  map.on('click', 'blocks-hit', event => {
+    const p = event.features[0].properties;
+    const lines = p.l ? p.l.split(' ').map(Number).join(' · ') : '';
+    popup.setLngLat(event.lngLat).setHTML(`
+      <div class="pop-street">${p.s}</div>
+      <div class="pop-meta">${p.b || 'sin barrio asignado'} · ${p.t.toLowerCase()}</div>
+      ${lines
+        ? `<div class="pop-lines"><b>${p.n}</b> ${p.n === 1 ? 'línea' : 'líneas'}: ${lines}</div>`
+        : '<div class="pop-none">No pasa ningún colectivo</div>'}
+    `).addTo(map);
+  });
+  map.on('mouseenter', 'blocks-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'blocks-hit', () => { map.getCanvas().style.cursor = ''; });
+});
+
+function buildLegend() {
+  const legend = document.getElementById('legend');
+  legend.innerHTML = '';
+  for (const b of BREAKS) {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    // El alto del cuadrito repite el grosor de la capa, igual que en el mapa.
+    const height = [1.5, 2, 3, 4, 5][BREAKS.indexOf(b)];
+    row.innerHTML =
+      `<div class="swatch" style="background:${css(b.varName)};height:${height}px"></div>` +
+      `<span>${b.label}</span>`;
+    legend.appendChild(row);
+  }
+}
+
+// El mapa base y la rampa siguen el tema del sistema.
+darkMode.addEventListener('change', () => {
+  map.getSource('base').setTiles([basemap()]);
+  if (map.getLayer('blocks')) {
+    map.setPaintProperty('blocks', 'line-color', colorExpression());
+    map.setPaintProperty('blocks-picked', 'line-color', css('--pick'));
+    map.setPaintProperty('route-picked', 'line-color', css('--pick'));
+    buildLegend();
+  }
+});
+</script>
+</body>
+</html>
