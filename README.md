@@ -18,14 +18,19 @@ vive sólo en la cabeza de alguien.
 
 ## Estado
 
-Terminada la exploración de fuentes de datos. Todavía no empezó el análisis.
+Terminada la exploración de fuentes de datos, con las tres fuentes elegidas y
+validadas. Todavía no empezó el análisis.
 
-El hallazgo que ordena todo lo demás: **el dataset de recorridos del portal
-EPOK, que fue el punto de partida, no sirve como fuente geométrica.** Su traza
-tiene los vértices separados 261 m en promedio (una cuadra son 110 m), así que
-corta manzanas por el medio y no permite saber por qué calle pasa un colectivo.
-El GTFS de Buenos Aires Data tiene 55 m de separación y además trae paradas y
-frecuencias: es la fuente principal para seguir.
+Dos hallazgos ordenan todo lo demás:
+
+1. **El dataset de recorridos de EPOK, que fue el punto de partida, no sirve
+   como fuente geométrica.** Sus vértices están separados 261 m (una cuadra son
+   110 m): la traza corta manzanas por el medio y no permite saber por qué calle
+   pasa un colectivo. Queda como padrón de líneas vigentes.
+2. **El GTFS de Buenos Aires Data sí sirve** — 55 m entre puntos, más paradas y
+   frecuencias — pero es de 2019 y no hay nada más nuevo publicado. Medimos que
+   describe correctamente el 87 % de la red vigente, lo cual alcanza siempre que
+   arrastremos ese dato hasta el mapa.
 
 El detalle y el plan están en [docs/02-data-sources.md](docs/02-data-sources.md).
 
@@ -61,7 +66,7 @@ output/     La salida de cada script, versionada
 ```bash
 # 1. datos — sin argumento baja sólo el dataset EPOK
 bash scripts/00_download.sh          # ~3,5 MB
-bash scripts/00_download.sh all      # todas las fuentes, ~250 MB
+bash scripts/00_download.sh all      # todas las fuentes que usamos, ~50 MB
 
 # 2. dependencias — los pasos 01 y 02 no las necesitan
 python3 -m venv .venv
