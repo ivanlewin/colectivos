@@ -1,0 +1,53 @@
+
+======================================================================
+¿Cuánto de cada recorrido cae dentro de CABA?
+======================================================================
+Usando un bounding box aproximado de la Ciudad, no el polígono real,
+así que los porcentajes son estimativos.
+
+Vértices dentro de CABA      : 44483 (56.8%)
+Vértices fuera (GBA/Provincia): 33844 (43.2%)
+Recorridos 100% dentro de CABA: 228 / 1027
+Recorridos que NO tocan CABA  : 0 / 1027
+
+=> los recorridos vienen completos, no recortados al ejido,
+   pero todos pasan por la Ciudad en algún tramo.
+
+======================================================================
+¿Están todas las líneas?
+======================================================================
+Presentes: 132 líneas, de la 1 a la 195
+Ausentes en el rango 1..199: 67
+[3, 5, 6, 11, 13, 14, 16, 18, 27, 30, 35, 36, 38, 40, 43, 48, 52, 54, 58, 66, 69, 72, 73, 77, 81, 82, 83, 89, 94, 99, 104, 112, 116, 120, 121, 122, 125, 131, 137, 138, 139, 141, 142, 144, 147, 149, 155, 156, 157, 162, 165, 167, 170, 171, 173, 175, 183, 186, 187, 189, 190, 191, 192, 196, 197, 198, 199]
+
+=> son las líneas nacionales/provinciales que no entran a CABA.
+   Tampoco hay líneas municipales del conurbano ni numeración 200+.
+
+======================================================================
+Ramales por línea
+======================================================================
+Promedio de features por línea: 7.8
+Líneas con más ramales x sentidos:
+   línea 096: 70 recorridos
+   línea 057: 38 recorridos
+   línea 129: 38 recorridos
+   línea 176: 30 recorridos
+   línea 088: 28 recorridos
+
+======================================================================
+Campos que NO están en el dataset
+======================================================================
+   paradas     : no
+   stops       : no
+   frecuencia  : no
+   horario     : no
+   tarifa      : no
+   route_id    : no
+   shape_id    : no
+   trip_id     : no
+   longitud    : no
+   km          : no
+
+=> es geometría de traza + metadatos administrativos.
+   Para paradas, frecuencias y horarios hay que ir al GTFS
+   del Ministerio de Transporte, que es otro dataset.

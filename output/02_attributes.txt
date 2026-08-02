@@ -1,0 +1,130 @@
+
+======================================================================
+Distribución de los atributos categóricos
+======================================================================
+
+jurisdicci: 2 valores distintos
+   'NACIONAL': 896
+   'D.F.': 131
+
+sentido: 2 valores distintos
+   'IDA': 517
+   'VUELTA': 510
+
+modalidad: 8 valores distintos
+   'COMUN': 827
+   'EXPRESO': 120
+   'COMUN (MDA)': 36
+   'EXPRESO RECONVERTIDO': 14
+   'EXPRESO (MDA)': 12
+   'EXPRESO AUTOPISTA': 12
+   'EXPRESO DIFERENCIAL (MDA)': 4
+   'SERVICIO EXPRESO RECONVERTIDO': 2
+
+camara: 7 valores distintos
+   'CETUBA': 416
+   'CEAP': 204
+   'ACTA': 203
+   'AAETA': 108
+   'CTPBA': 56
+   None: 38
+   'CETUBA-CEAP': 2
+
+Recorrido: 37 valores distintos
+   'A': 262
+   'B': 202
+   'C': 139
+   'D': 73
+   'E': 52
+   'F': 46
+   'G': 39
+   'H': 36
+   'I': 30
+   'J': 24
+   'K': 18
+   'L': 16
+   'M': 12
+   'N': 10
+   'NN': 8
+   ... (22 valores más)
+
+======================================================================
+Niveles de identidad: línea vs ramal vs recorrido
+======================================================================
+linea  (línea)                   : 132 distintas
+l_r    (línea + ramal)           : 518 distintos
+l_r_s  (línea + ramal + sentido) : 1027 distintos
+Id     (identificador único)     : 1027
+features                         : 1027
+
+l_r_s repetidos: ninguno
+=> cada feature es un ramal en un sentido; la clave natural es l_r_s
+
+Líneas presentes:
+['001', '002', '004', '007', '008', '009', '010', '012', '015', '017', '019', '020', '021', '022', '023', '024', '025', '026', '028', '029', '031', '032', '033', '034', '037', '039', '041', '042', '044', '045', '046', '047', '049', '050', '051', '053', '055', '056', '057', '059', '060', '061', '062', '063', '064', '065', '067', '068', '070', '071', '074', '075', '076', '078', '079', '080', '084', '085', '086', '087', '088', '090', '091', '092', '093', '095', '096', '097', '098', '100', '101', '102', '103', '105', '106', '107', '108', '109', '110', '111', '113', '114', '115', '117', '118', '119', '123', '124', '126', '127', '128', '129', '130', '132', '133', '134', '135', '136', '140', '143', '145', '146', '148', '150', '151', '152', '153', '154', '158', '159', '160', '161', '163', '164', '166', '168', '169', '172', '174', '176', '177', '178', '179', '180', '181', '182', '184', '185', '188', '193', '194', '195']
+
+======================================================================
+Pares IDA / VUELTA
+======================================================================
+Ramales con ambos sentidos  : 509 / 518
+Ramales con un solo sentido : 9
+   061A: sólo IDA
+   061B: sólo IDA
+   061C: sólo IDA
+   061D: sólo IDA
+   062A: sólo IDA
+   062B: sólo IDA
+   062C: sólo IDA
+   117C: sólo IDA
+   180G: sólo VUELTA
+
+======================================================================
+Empresas (razon_soci)
+======================================================================
+86 razones sociales distintas. Top 10 por recorridos:
+    76  TRANSPORTE IDEAL SAN JUSTO S.A.
+    65  LA CENTRAL DE VICENTE LOPEZ S.A.
+    42  LA NUEVA METROPOL S.A.
+    38  TRANSPORTES ATLANTIDA S.A.C.
+    30  D.O.T.A. S.A. DE TRANSPORTE AUTOMOTOR
+    30  EXPRESO GENERAL SARMIENTO S.A.
+    28  LINEA EXPRESO LINIERS S.A.I.Y C.
+    26  SAN VICENTE S.A. DE TRANSPORTES
+    26  MICRO OMNIBUS QUILMES S.A.C.I. Y F.
+    26  LOS CONSTITUYENTES S.A.T.
+
+======================================================================
+Geometrías (en unidades del sistema plano de CABA)
+======================================================================
+Vértices totales : 78327
+Rango X          : 10644.0 .. 149541.3
+Rango Y          : 37875.7 .. 164930.9
+Vértices por recorrido: mín 10, mediana 69, máx 237
+
+Largo del recorrido: mín 5.0 km (151DIDA), mediana 29.2 km, máx 131.7 km (057BIDA)
+Los 5 recorridos más largos:
+     131.7 km  057BIDA
+     129.9 km  057BVUELTA
+     126.0 km  088AVUELTA
+     125.2 km  057AIDA
+     123.5 km  057AVUELTA
+
+======================================================================
+Ejemplos por jurisdicción
+======================================================================
+
+D.F.:
+   115BVUELTA     TRANSPORTES AUTOMOTORES RIACHUELO S.A.
+                  AV. ESCALADA Y AV. ROCA (CIUDAD AUTONOMA DE B -> PLAZA MISERERE (CIUDAD AUTONOMA DE BUENOS AIR
+   151CVUELTA     M.O.D.O. S.A. DE TRANSPORTE AUTOMOTOR
+                  CONCEPCION ARENAL Y ALVAREZ THOMAS -> PREDIO DE REGULACION AREA PLAZA CONSTITUCION
+   062CIDA        LA CENTRAL DE VICENTE LOPEZ S.A.
+                  PLAZA CONSTITUCION (CIUDAD AUTONOMA DE BUENOS -> RETIRO (CIUDAD AUTONOMA DE BUENOS AIRES)
+
+NACIONAL:
+   015GIDA        TRANSPORTES SUR-NOR C.I.S.A.
+                  VALENTIN ALSINA (PARTIDO DE LANUS - PROVINCIA -> ESTACION BENAVIDEZ (LINEA MITRE - PARTIDO DE 
+   028DVUELTA     D.O.T.A. S.A. DE TRANSPORTE AUTOMOTOR
+                  CIUDAD UNIVERSITARIA (CIUDAD AUTONOMA DE BUEN -> PUENTE ALSINA (CIUDAD AUTONOMA DE BUENOS AIRE
+   053AIDA        LINEA 213 S.A. DE TRANSPORTE
+                  LA BOCA (CIUDAD AUTONOMA DE BUENOS AIRES) -> SAN MIGUEL (PARTIDO DE SAN MIGUEL - PROVINCIA

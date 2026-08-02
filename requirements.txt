@@ -1,0 +1,3 @@
+# Sólo los pasos 03 y 04 necesitan dependencias externas.
+# Los pasos 01 y 02 corren con la biblioteca estándar.
+pyproj>=3.6

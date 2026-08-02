@@ -1,0 +1,55 @@
+
+======================================================================
+Objeto raíz
+======================================================================
+Tipo               : dict
+Claves             : ['type', 'features']
+type               : FeatureCollection
+¿declara crs?      : NO (dato importante)
+
+======================================================================
+Features
+======================================================================
+Cantidad           : 1027
+Tipos de geometría : {'LineString': 1027}
+
+======================================================================
+Claves de properties (clave: cuántas features la traen)
+======================================================================
+  Id          : 1027
+  l_r         : 1027
+  l_r_s       : 1027
+  linea       : 1027
+  Recorrido   : 1027
+  razon_soci  : 1027
+  jurisdicci  : 1027
+  sentido     : 1027
+  modalidad   : 1027
+  desde       : 1027
+  hasta       : 1027
+  camara      : 1027
+
+======================================================================
+Ejemplo: primera feature
+======================================================================
+{
+  "Id": "colectivos|3033",
+  "l_r": "015G",
+  "l_r_s": "015GIDA",
+  "linea": "015",
+  "Recorrido": "G",
+  "razon_soci": "TRANSPORTES SUR-NOR C.I.S.A.",
+  "jurisdicci": "NACIONAL",
+  "sentido": "IDA",
+  "modalidad": "EXPRESO",
+  "desde": "VALENTIN ALSINA (PARTIDO DE LANUS - PROVINCIA DE BUENOS AIRES)",
+  "hasta": "ESTACION BENAVIDEZ (LINEA MITRE - PARTIDO DE TIGRE   PROVINCIA DE BUENOS AIRES)",
+  "camara": "CEAP"
+}
+
+geometry.type       : LineString
+profundidad coords  : 2 (2 = lista plana de pares x,y)
+cantidad de vértices: 151
+primeros 3 vértices : [[104312.04934050777, 96363.82242230339], [104246.84829242395, 96305.83261186439], [104229.69642848018, 96338.75376165369]]
+
+Ojo: esos valores no son lat/lon. Ver scripts/03_crs.py

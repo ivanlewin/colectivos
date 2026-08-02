@@ -1,0 +1,39 @@
+
+======================================================================
+Prueba de candidatos sobre un mismo punto
+======================================================================
+Punto de prueba (proyectado): [104312.04934050777, 96363.82242230339]
+Debería caer en el AMBA, es decir cerca de lat -34.6, lon -58.4
+
+  CABA local (tmerc)       -> lat -34.66248, lon -58.41566   PLAUSIBLE
+  EPSG:9498                -> lat -34.38818, lon -57.54651   PLAUSIBLE
+  EPSG:22185 (GK faja 5)   -> lat -46.48738, lon -149.08839   descartado
+
+======================================================================
+Validación contra las cabeceras declaradas en `desde`
+======================================================================
+  015GIDA    desde = VALENTIN ALSINA (PARTIDO DE LANUS - PROVINCI
+             primer vértice -> (-34.6625, -58.4157)
+             esperado Valentín Alsina, Lanús ~(-34.678, -58.42)  OK
+
+  029AIDA    desde = LA BOCA (CIUDAD AUTONOMA DE BUENOS AIRES)
+             primer vértice -> (-34.6405, -58.3634)
+             esperado La Boca, CABA ~(-34.635, -58.363)  OK
+
+  060AIDA    desde = BARRACAS (CIUDAD AUTONOMA DE BUENOS AIRES)
+             primer vértice -> (-34.6569, -58.3794)
+             esperado Barracas, CABA ~(-34.65, -58.38)  OK
+
+
+======================================================================
+Bounding box del dataset completo, en lat/lon
+======================================================================
+lat -35.1857 .. -34.0432
+lon -59.4437 .. -57.9262
+
+Eso cubre el AMBA entero, no sólo la Ciudad.
+
+======================================================================
+Definición a usar para reproyectar
+======================================================================
++proj=tmerc +lat_0=-34.6297166 +lon_0=-58.4627 +k=0.999998 +x_0=100000 +y_0=100000 +ellps=intl +units=m +no_defs
