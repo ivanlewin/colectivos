@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Fuentes pesadas: se bajan con scripts/00_download.sh, no se versionan.
+data/gtfs.zip
+data/gtfs/
+data/streets.geojson
+data/cnrt_routes.kml
+data/routes_wgs84.json
+
+# Copias de respaldo fechadas que genera scripts/00_download.sh
+data/*.20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].*
