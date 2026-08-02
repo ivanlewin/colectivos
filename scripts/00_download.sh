@@ -3,11 +3,16 @@
 #
 # Uso:
 #   bash scripts/00_download.sh            # sólo el dataset EPOK (chico)
-#   bash scripts/00_download.sh all        # todas las fuentes (~250 MB)
-#   bash scripts/00_download.sh gtfs       # una fuente puntual
+#   bash scripts/00_download.sh all        # las fuentes que usamos (~50 MB)
+#   bash scripts/00_download.sh gtfsfreq   # una fuente puntual
 #
-# Fuentes: epok | epok4326 | streets | gtfs | cnrt
-# La comparación entre ellas está en docs/02-data-sources.md
+# Fuentes: epok | epok4326 | streets | gtfsfreq | cnrt | gtfs
+#
+# `all` NO incluye `gtfs` (el GTFS completo, 209 MB): su único aporte sobre
+# `gtfsfreq` es stop_times.txt con horario exacto por parada, que pesa 1,4 GB
+# y no necesitamos. Bajalo aparte si alguna vez hace falta.
+#
+# La comparación entre fuentes está en docs/02-data-sources.md
 
 set -euo pipefail
 
@@ -57,9 +62,23 @@ if want "$TARGET" streets; then
         "$DATA/streets.geojson" "GeoJSON, ~24 MB"
 fi
 
-# --- GTFS del AMBA: geometría densa + paradas + frecuencias ------------------
-if want "$TARGET" gtfs; then
-  echo "[gtfs] GTFS de colectivos (Buenos Aires Data) — ~209 MB, tarda"
+# --- GTFS frequency: geometría densa + paradas + headways --------------------
+# Es la fuente principal del proyecto. Mismo feed que el GTFS completo (NSSA,
+# válido 2018-2019) pero con frequencies.txt en vez de stop_times.txt, así que
+# pesa 13 MB en lugar de 209 MB y trae el headway ya calculado.
+if want "$TARGET" gtfsfreq; then
+  echo "[gtfsfreq] GTFS frequency de colectivos (Buenos Aires Data)"
+  fetch "https://data.buenosaires.gob.ar/dataset/colectivos-gtfs-frequency/resource/eb7f52bc-1696-4fa7-a17d-672b27961f1a/download" \
+        "$DATA/gtfs_frequency.zip" "ZIP, ~13 MB"
+  echo "  descomprimiendo en data/gtfs_frequency/"
+  rm -rf "$DATA/gtfs_frequency" && mkdir -p "$DATA/gtfs_frequency"
+  unzip -oq "$DATA/gtfs_frequency.zip" -d "$DATA/gtfs_frequency"
+fi
+
+# --- GTFS completo: sólo si hace falta el horario exacto por parada ----------
+# No entra en `all`: son 209 MB y stop_times.txt pesa 1,4 GB.
+if [[ "$TARGET" == "gtfs" ]]; then
+  echo "[gtfs] GTFS completo de colectivos — ~209 MB, tarda"
   fetch "https://data.buenosaires.gob.ar/dataset/colectivos-gtfs/resource/juqdkmgo-571-resource/download" \
         "$DATA/gtfs.zip" "ZIP, ~209 MB"
   echo "  descomprimiendo en data/gtfs/"

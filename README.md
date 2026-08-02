@@ -42,11 +42,10 @@ El detalle y el plan están en [docs/02-data-sources.md](docs/02-data-sources.md
 |---|---|---|
 | EPOK, recorridos | `data/routes.json` | Padrón vigente de líneas que pasan por CABA |
 | Callejero de CABA | `data/streets.geojson` | **Unidad de análisis**: 31.961 features, una por cuadra |
-| GTFS de colectivos | `data/gtfs/` | Geometría que sigue las calles, 43.594 paradas, frecuencias |
+| GTFS frequency | `data/gtfs_frequency/` | **Geometría que sigue las calles**, 42.463 paradas, headways |
 | KML del CNRT (2023) | `data/cnrt_routes.kml` | Control de vigencia contra el GTFS de 2019 |
 
-Sólo `data/routes.json` está versionado; el resto se baja con el script (son
-~250 MB en total).
+Sólo `data/routes.json` está versionado; el resto se baja con el script (~50 MB).
 
 ## Estructura del repo
 
@@ -90,6 +89,7 @@ también corre solo:
 | [03_crs.py](scripts/03_crs.py) | ¿En qué sistema de coordenadas está? Prueba candidatos y valida. |
 | [04_coverage.py](scripts/04_coverage.py) | ¿Es de verdad "los colectivos de la Ciudad"? |
 | [05_geometry_quality.py](scripts/05_geometry_quality.py) | ¿Sirve la geometría para atribuir colectivos a calles? Compara las tres fuentes. |
+| [06_gtfs_freshness.py](scripts/06_gtfs_freshness.py) | ¿Cuánto sirve todavía el GTFS de 2019? Mide la cobertura de cada recorrido vigente. |
 | [common.py](scripts/common.py) | Rutas, carga del dataset y definición del CRS. |
 
 ---
@@ -112,10 +112,26 @@ salvedad de que sus archivos son de 2019. Se encontró además el callejero de
 CABA, que da la unidad de análisis lista: una feature por cuadra.
 → [docs/02-data-sources.md](docs/02-data-sources.md)
 
+### 2026-08-02 — Vigencia del GTFS: el proyecto es viable
+
+Se confirmó que **no existe un GTFS más nuevo** de la Ciudad: los dos ZIP
+publicados son del mismo feed de NSSA, válido hasta el 31/12/2019, y la API de
+Transporte Público está dada de baja. Se midió entonces cuánto sirve todavía:
+129 de las 132 líneas vigentes están en el GTFS, y la cobertura mediana por
+recorrido es del **97 %** — el 86,7 % de los recorridos actuales tiene una traza
+2019 que le calza en más del 80 %. Alcanza para el proyecto, arrastrando el
+`coverage` por recorrido hasta el mapa para ser honestos sobre qué está
+validado.
+
+Se cambió la fuente principal al **GTFS frequency** (13 MB en vez de 209 MB, con
+`frequencies.txt` en lugar de `stop_times.txt` de 1,4 GB).
+
+Se descubrió además que la distancia mediana entre un vértice de EPOK y la traza
+GTFS de su línea es de 0,1 m: **EPOK es una versión decimada de la misma
+geometría base**.
+
 Próximos pasos, en orden:
 
-- [ ] Revisar el dataset `colectivos-gtfs-frequency` por si hay un GTFS más nuevo.
-- [ ] Medir cuánto se desvió el GTFS de 2019 cruzándolo con el padrón EPOK actual.
 - [ ] Paso A: atribuir líneas a cuadras (buffer + filtro por rumbo), validando
       contra la línea 65.
 - [ ] Paso B: grafo peatonal sobre el callejero y acceso a paradas a 400 m.

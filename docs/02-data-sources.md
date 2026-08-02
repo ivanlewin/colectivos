@@ -61,34 +61,65 @@ fuente geométrica para este proyecto.
 | Fuente | Vigencia | Separación mediana | Paradas | Frecuencias | Cobertura |
 |---|---|---|---|---|---|
 | **EPOK** `getGeoLayer` | actual | 261 m ❌ | no | no | líneas que tocan CABA (nacional + D.F.) |
-| **GTFS** Buenos Aires Data | 2019 | **55 m** ✅ | **43.594** | sí (`stop_times`) | AMBA |
+| **GTFS frequency** BA Data | 2019 | **55 m** ✅ | **42.463** | sí (`frequencies`) | AMBA |
+| GTFS completo BA Data | 2019 | 55 m ✅ | 43.594 | sí (`stop_times`, 1,4 GB) | AMBA |
 | **CNRT** KML | 2023 | 86 m ✅ | no | no | sólo jurisdicción nacional, RMBA |
 
-### GTFS — la fuente principal recomendada
+### GTFS frequency — la fuente principal
 
-`https://data.buenosaires.gob.ar/dataset/colectivos-gtfs` → ZIP de 209 MB.
+`https://data.buenosaires.gob.ar/dataset/colectivos-gtfs-frequency` → ZIP de 13 MB.
 
 ```
-agency.txt          21 KB
-calendar_dates.txt   1 KB
-routes.txt          74 KB     1.052 rutas
-shapes.txt          29 MB     2.066 trazas, 366 puntos cada una
-stops.txt          3,2 MB     43.594 paradas (11.661 dentro de CABA)
-stop_times.txt     1,4 GB     ← acá están las frecuencias
-trips.txt           31 MB
+routes.txt          65 KB     1.027 rutas
+shapes.txt          26 MB     2.022 trazas, 366 puntos cada una
+stops.txt          4,1 MB     42.463 paradas (11.661 dentro de CABA)
+frequencies.txt    827 KB     ← headway_secs por franja horaria
+calendar.txt       228 B      HI hábil / SI sábado / DI domingo / FI feriado
+trips.txt          359 KB
 ```
 
-Es la única fuente que trae las tres cosas que necesitamos: geometría que
-sigue las calles, paradas, y con qué frecuencia pasa cada línea.
+Es la única fuente que trae las tres cosas que necesitamos: geometría que sigue
+las calles, paradas, y con qué frecuencia pasa cada línea.
 
-**Advertencia importante:** aunque el portal dice "actualizado el 1 de julio de
-2026", los archivos adentro del ZIP están fechados el **30 de septiembre de
-2019**. Son datos de hace siete años; varios recorridos cambiaron. También hay
-un aviso en el portal de que los datasets GTFS "están suspendidos, en revisión y
-corrección" — igual descargan bien.
+Hay también un **GTFS completo** de 209 MB, pero lo único que agrega es
+`stop_times.txt` (1,4 GB) con el horario exacto de cada parada. Para pesar por
+frecuencia alcanza y sobra `frequencies.txt`, que ya viene con el `headway_secs`
+calculado. **Usar la versión frequency**, salvo que en algún momento haga falta
+el horario exacto.
 
-Mitigación: cruzar contra el padrón EPOK actual (por `l_r_s`) y contra el KML
-del CNRT de 2023 para detectar recorridos que ya no existen o que cambiaron.
+### Vigencia: el GTFS es de 2019, y sí importa
+
+Los dos ZIP declaran `feed_end_date=20191231` en `feed_info.txt`, publicados por
+NSSA (SUBE). No hay un GTFS más nuevo: el portal marca los datasets GTFS y de
+API como "suspendidos, en revisión y corrección", y la API de Transporte Público
+está dada de baja. **Es lo más nuevo que hay con geometría usable.**
+
+Medido en [scripts/06_gtfs_freshness.py](../scripts/06_gtfs_freshness.py),
+comparando cada recorrido vigente de EPOK contra la mejor traza GTFS de su
+misma línea, con tolerancia de 50 m:
+
+| | |
+|---|---|
+| Líneas de EPOK presentes en el GTFS | **129 de 132** |
+| Mediana de cobertura por recorrido | **97,0 %** |
+| Recorridos con ≥ 95 % de cobertura | 599 (58,3 %) |
+| Recorridos con ≥ 80 % de cobertura | **890 (86,7 %)** |
+| Recorridos con ≥ 60 % de cobertura | 978 (95,2 %) |
+| Recorridos sin ninguna traza de su línea | 16 (líneas 119, 145 y 164) |
+
+Los que más cambiaron son los ramales de las líneas 8, 51, 50, 106 y 9
+(cobertura 15–30 %).
+
+Un dato revelador: la distancia mediana entre un vértice de EPOK y la traza GTFS
+de su línea es de **0,1 m**. No es casualidad — **EPOK es una versión decimada
+de la misma geometría base**. Eso explica por qué el padrón coincide tan bien y
+refuerza la decisión: el GTFS es el original sin decimar.
+
+**Conclusión: el proyecto es viable.** El GTFS de 2019 describe correctamente
+~87 % de la red vigente. La cobertura por recorrido queda en
+[output/route_coverage.csv](../output/route_coverage.csv), así que se puede
+filtrar por nivel de confianza y decir honestamente en la visualización qué
+porción del mapa está validada contra los recorridos actuales.
 
 ### Callejero de CABA — la unidad de análisis
 
@@ -164,15 +195,20 @@ Por cada cuadra:
 | `lines_on_block` | Paso A |
 | `lines_walkable` | Paso B, líneas distintas con parada a ≤ 400 m |
 | `stops_walkable` | Paso B |
-| `trips_per_day` | `stop_times.txt`, para pesar por frecuencia real |
+| `buses_per_hour` | `frequencies.txt`, para pesar por frecuencia real |
+| `coverage` | Paso 6, para saber cuánto confiar en cada resultado |
 
 La cuadra ideal es `lines_on_block == 0` ordenada por `lines_walkable`
 descendente. Pero el peso relativo de ruido y acceso es una preferencia
 personal, así que **conviene exponer los pesos como sliders en la visualización**
 en vez de fijar una fórmula. El valor del proyecto está en poder explorarlo.
 
-Para procesar `stop_times.txt` (1,4 GB) usar **DuckDB** o Polars en streaming.
-Pandas ingenuo no entra en memoria.
+Para el ruido probablemente importe más `buses_per_hour` que la cantidad de
+líneas distintas: convivir con una línea que pasa cada 3 minutos es peor que con
+cuatro que pasan cada media hora. `frequencies.txt` da el `headway_secs` por
+franja horaria y `calendar.txt` distingue hábil / sábado / domingo / feriado,
+así que se puede calcular la franja que a uno le importe (dormir de noche, por
+ejemplo).
 
 ### Paso D — La visualización
 
@@ -192,12 +228,23 @@ conectados" — es una vista mucho más comunicable que 31.961 cuadras.
 
 ## Riesgos y decisiones abiertas
 
-1. **El GTFS es de 2019.** Es el riesgo principal. Hay que medir cuánto se
-   desvió cruzándolo con EPOK y el CNRT antes de confiar en los resultados.
-2. **¿Un GTFS más nuevo?** Existe `colectivos-gtfs-frequency` en Buenos Aires
-   Data, sin revisar todavía. Vale la pena mirarlo antes de arrancar.
-3. **`stop_times.txt` de 1,4 GB** condiciona las herramientas: DuckDB, no pandas.
-4. **Los umbrales (12 m, 25°, 400 m) son propuestas, no verdades.** Hay que
+1. **El GTFS es de 2019 y no hay nada más nuevo con geometría usable.**
+   Medido: describe bien ~87 % de la red vigente. Mitigación adoptada: arrastrar
+   el `coverage` por recorrido hasta la visualización y ser explícitos sobre qué
+   parte del mapa está validada. Los 137 recorridos con cobertura < 80 % hay que
+   decidir si se excluyen o se marcan.
+2. **Los umbrales (12 m, 25°, 400 m) son propuestas, no verdades.** Hay que
    calibrarlos contra la línea 65 y ajustarlos.
-5. **Falta decidir si contar ramales o líneas.** Para el ruido probablemente
-   importe la cantidad de colectivos por hora, no cuántas líneas distintas son.
+3. **Las líneas 119, 145 y 164 no están en el GTFS.** Son 16 recorridos sin
+   geometría densa. Habría que ver si el KML del CNRT las cubre.
+4. **El CNRT sólo tiene jurisdicción nacional**, así que no reemplaza al GTFS:
+   se pierden las 131 features de jurisdicción D.F. y todas las paradas.
+
+## Fuentes descartadas
+
+- **API Transporte Público del GCBA** — daba tiempo real de colectivos, tren y
+  subte. Está dada de baja.
+- **Endpoint `obtener-recorridos-por-linea` de EPOK** — sólo devuelve la lista
+  de ramales de una línea, para el desplegable del mapa.
+- **GTFS completo (209 MB)** — sólo agrega `stop_times.txt` de 1,4 GB, que no
+  necesitamos teniendo `frequencies.txt`.

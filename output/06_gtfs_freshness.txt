@@ -1,0 +1,32 @@
+
+======================================================================
+Vigencia del GTFS 2019 frente al padrón EPOK actual
+======================================================================
+Tolerancia: un vértice cuenta como coincidente si hay un punto de la
+traza GTFS a menos de 50 m.
+
+Recorridos vigentes en EPOK        : 1027
+Sin ninguna traza GTFS de su línea : 16
+   164DIDA, 164DVUELTA, 164CVUELTA, 164CIDA, 164BVUELTA, 164BIDA, 164AIDA, 164AVUELTA, 119AVUELTA, 119AIDA, 145AVUELTA, 145AIDA
+
+Cobertura del recorrido actual por la mejor traza GTFS:
+   >= 95% de los vértices :  599 recorridos ( 58.3%)
+   >= 90% de los vértices :  748 recorridos ( 72.8%)
+   >= 80% de los vértices :  890 recorridos ( 86.7%)
+   >= 60% de los vértices :  978 recorridos ( 95.2%)
+
+   mediana de cobertura: 97.0%
+
+Recorridos que más cambiaron desde 2019:
+   008EVUELTA      15.0%
+   051HVUELTA      19.2%
+   008EIDA         21.7%
+   008DVUELTA      21.8%
+   050CVUELTA      25.0%
+   106BIDA         26.1%
+   051HIDA         29.1%
+   008DIDA         29.5%
+   009CIDA         29.8%
+   051GIDA         30.0%
+
+Escrito output/route_coverage.csv (1027 filas) para filtrar por confianza.
