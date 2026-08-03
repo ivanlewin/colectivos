@@ -23,6 +23,22 @@ Proxy: velocidad máxima legal (Ley 2148, art. 6.2.2).
    SUBIDA AUTOPISTA     100 km/h -> ruido 1.00       58 cuadras   (sin domicilios)
 
 ======================================================================
+Vías con límite propio (art. 6.2.2)
+======================================================================
+Ganan sobre la regla general por tipo de vía.
+
+   CANTILO, INT.                          100 km/h   ruido 0.25 -> 1.00     15 cuadras
+   LUGONES, LEOPOLDO AV.                  100 km/h   ruido 0.50 -> 1.00     17 cuadras
+   AUTOPISTA DELLEPIANE LUIS TTE. GRAL.   100 km/h   ruido 1.00 -> 1.00     56 cuadras
+   PAZ, GRAL. AV.                          80 km/h   ruido 0.50 -> 0.75    666 cuadras
+   FIGUEROA ALCORTA, PRES. AV.             70 km/h   ruido 0.50 -> 0.62     61 cuadras
+   DARSENA FIGUEROA ALCORTA, PRES. AV.     70 km/h   ruido 0.50 -> 0.62      1 cuadras
+   DEL LIBERTADOR AV.                      70 km/h   ruido 0.50 -> 0.62    128 cuadras
+   27 DE FEBRERO AV.                       70 km/h   ruido 0.50 -> 0.62     50 cuadras
+   QUIROGA JUAN FACUNDO BRIG. GRAL.        70 km/h   ruido 0.25 -> 0.62      4 cuadras
+   OBLIGADO RAFAEL, AV.COSTANERA           70 km/h   ruido 0.50 -> 0.62     57 cuadras
+
+======================================================================
 Constantes de normalización
 ======================================================================
 Son las que usa la página. Si cambian los datos, hay que
@@ -94,7 +110,7 @@ Sensibilidad al peso del ruido
 Cuántas cuadras superan 60 puntos, y qué barrios encabezan:
 
    peso 0.0 ->  3050 cuadras sobre 60   | top 40: Retiro, Palermo
-   peso 0.5 ->   940 cuadras sobre 60   | top 40: Retiro, San Nicolas, Constitucion
+   peso 0.5 ->   938 cuadras sobre 60   | top 40: Retiro, San Nicolas, Constitucion
    peso 1.0 ->   331 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
    peso 1.5 ->   152 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
    peso 2.0 ->    53 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya

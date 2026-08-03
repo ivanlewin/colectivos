@@ -99,6 +99,41 @@ SPEED_LIMIT_KMH = {
     "ENLACE AUTOPISTA": 100,
 }
 DEFAULT_SPEED_KMH = 40
+
+# El artículo 6.2.2 no se agota en la regla general: nombra vías concretas con
+# límites propios, y varias de ellas el callejero las clasifica de un modo que
+# subestima muchísimo su tránsito. La Av. Intendente Cantilo figura como CALLE
+# —40 km/h por la regla general— y es una vía rápida de 100.
+#
+# Se compara por `nomoficial` exacto. Importa que sea exacto: "COLECTORA
+# CANTILO, INT." es una colectora y le corresponden los 40 de la regla
+# general, no los 100 de la Cantilo.
+SPEED_BY_NAME_KMH = {
+    # a.1) Vías rápidas, 100 km/h. Las autopistas nombradas en el código
+    # (25 de Mayo, Perito Moreno, Cámpora, Illia) ya vienen tipificadas como
+    # AUTOPISTA en el callejero, así que no hacen falta acá.
+    "CANTILO, INT.": 100,
+    "LUGONES, LEOPOLDO AV.": 100,
+    "AUTOPISTA DELLEPIANE LUIS TTE. GRAL.": 100,
+
+    # a.2 y a.3) La Gral. Paz tiene tres límites según el tramo y el tipo de
+    # calzada: 100 entre Lugones y la AU Palazzo, 80 en el resto de las
+    # centrales, 60 en las de tránsito pesado. El callejero la trae entera
+    # bajo un solo nombre y sin distinguir calzadas, así que no se puede
+    # separar por tramo. Se le asigna el valor del medio: es una
+    # simplificación, pero cualquiera de los tres la aleja de los 60 km/h de
+    # una avenida común, que es lo que importa acá.
+    "PAZ, GRAL. AV.": 80,
+
+    # b) Avenidas con máxima de 70 en vez de 60.
+    "FIGUEROA ALCORTA, PRES. AV.": 70,
+    "DARSENA FIGUEROA ALCORTA, PRES. AV.": 70,
+    "DEL LIBERTADOR AV.": 70,
+    "27 DE FEBRERO AV.": 70,
+    "QUIROGA JUAN FACUNDO BRIG. GRAL.": 70,
+    "OBLIGADO RAFAEL, AV.COSTANERA": 70,
+}
+
 CALMEST_KMH, BUSIEST_KMH = 20, 100
 
 # Cuadras sin domicilios: no son candidatas por más tranquilas que sean. Los
@@ -117,9 +152,20 @@ UNITS = [
 ]
 
 
-def traffic_noise(tipo_c):
+def speed_limit(tipo_c, street=None):
+    """Velocidad máxima legal de la cuadra, en km/h.
+
+    Las vías nombradas en el artículo 6.2.2 ganan sobre la regla general por
+    tipo de vía.
+    """
+    if street and street in SPEED_BY_NAME_KMH:
+        return SPEED_BY_NAME_KMH[street]
+    return SPEED_LIMIT_KMH.get(tipo_c, DEFAULT_SPEED_KMH)
+
+
+def traffic_noise(tipo_c, street=None):
     """Ruido de tránsito 0..1, derivado de la velocidad máxima legal."""
-    speed = SPEED_LIMIT_KMH.get(tipo_c, DEFAULT_SPEED_KMH)
+    speed = speed_limit(tipo_c, street)
     return (speed - CALMEST_KMH) / (BUSIEST_KMH - CALMEST_KMH)
 
 
@@ -146,7 +192,7 @@ def main():
             row[key] = int(row[key])
         for key in ("buses_hour_walk", "buses_hour_on"):
             row[key] = float(row[key] or 0)
-        row["traffic"] = traffic_noise(row["tipo_c"])
+        row["traffic"] = traffic_noise(row["tipo_c"], row["street"])
         row["candidate"] = row["tipo_c"] not in NO_ADDRESSES
 
     common.heading("Ruido de tránsito por tipo de vía")
@@ -157,6 +203,20 @@ def main():
         mark = "" if tipo not in NO_ADDRESSES else "   (sin domicilios)"
         print(f"   {str(tipo):20s} {speed:3d} km/h -> ruido {traffic_noise(tipo):.2f}"
               f"   {by_type[tipo]:6d} cuadras{mark}")
+
+    common.heading("Vías con límite propio (art. 6.2.2)")
+    print("Ganan sobre la regla general por tipo de vía.\n")
+    named = collections.Counter(
+        r["street"] for r in rows if r["street"] in SPEED_BY_NAME_KMH)
+    for street, speed in sorted(SPEED_BY_NAME_KMH.items(), key=lambda kv: -kv[1]):
+        rows_here = [r for r in rows if r["street"] == street]
+        if not rows_here:
+            print(f"   {street:38s} {speed:3d} km/h   SIN COINCIDENCIAS")
+            continue
+        general = traffic_noise(rows_here[0]["tipo_c"])
+        actual = traffic_noise(rows_here[0]["tipo_c"], street)
+        print(f"   {street:38s} {speed:3d} km/h   ruido {general:.2f} -> {actual:.2f}"
+              f"   {named[street]:4d} cuadras")
 
     common.heading("Constantes de normalización")
     print("Son las que usa la página. Si cambian los datos, hay que")

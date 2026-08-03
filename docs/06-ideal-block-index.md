@@ -49,6 +49,44 @@ y ordena exactamente lo que se quiere ordenar:
 | Avenidas (y puentes, túneles) | 60 km/h | 0,50 | 7.060 |
 | Autopistas, subidas, bajadas, enlaces | 100 km/h | 1,00 | 306 |
 
+### Las vías con límite propio
+
+El artículo no se agota en la regla general: nombra vías concretas con límites
+distintos, y varias de ellas el callejero las clasifica de un modo que
+subestima muchísimo su tránsito. La **Av. Intendente Cantilo figura como
+`CALLE`** —40 km/h por la regla general— y es una vía rápida de 100.
+
+Se comparan por `nomoficial` exacto y ganan sobre el tipo de vía:
+
+| Vía | Límite | Ruido: general → propio | Cuadras |
+|---|---|---|---|
+| Av. Intendente Cantilo | 100 | 0,25 → **1,00** | 15 |
+| Av. Leopoldo Lugones | 100 | 0,50 → **1,00** | 17 |
+| Au. Dellepiane (calzadas centrales) | 100 | 1,00 → 1,00 | 56 |
+| Av. Gral. Paz | 80 | 0,50 → **0,75** | 666 |
+| Av. Figueroa Alcorta | 70 | 0,50 → 0,62 | 62 |
+| Av. del Libertador | 70 | 0,50 → 0,62 | 128 |
+| Av. 27 de Febrero | 70 | 0,50 → 0,62 | 50 |
+| Av. Costanera Rafael Obligado | 70 | 0,50 → 0,62 | 57 |
+| Brig. Gral. Juan Facundo Quiroga | 70 | 0,25 → 0,62 | 4 |
+
+Son 1.055 cuadras. Que la comparación sea **exacta** importa: `COLECTORA
+CANTILO, INT.` es una colectora y le corresponden los 40 de la regla general,
+no los 100 de la Cantilo.
+
+Las autopistas que el código nombra —25 de Mayo, Perito Moreno, Cámpora,
+Illia— ya vienen tipificadas como `AUTOPISTA` en el callejero, así que no
+necesitan excepción.
+
+**Una simplificación:** la Gral. Paz tiene tres límites según el tramo y el
+tipo de calzada (100 entre Lugones y la AU Palazzo, 80 en el resto de las
+centrales, 60 en las de tránsito pesado). El callejero la trae entera bajo un
+solo nombre y sin distinguir calzadas, así que no se puede separar por tramo.
+Se le asigna el valor del medio: cualquiera de los tres la aleja de los 60 de
+una avenida común, que es lo que importa acá.
+
+### Tomar el máximo, no la suma
+
 Se toma el **máximo** de las dos fuentes y no la suma: una avenida sin
 colectivos sigue siendo una avenida, y un pasaje por el que pasan diez líneas
 sigue siendo ruidoso. Alcanza con que una de las dos cosas sea cierta.
@@ -152,6 +190,17 @@ puntuaba altísimo en la versión anterior y es la Villa 31.
 **La velocidad máxima es un proxy, no una medición.** Una calle de 40 km/h
 puede ser un embudo de tránsito y un pasaje puede desembocar en una avenida.
 Medir tránsito real requeriría otra fuente de datos.
+
+**Las excepciones se aplican a la vía entera.** La Gral. Paz es el caso claro
+—tres límites según tramo y calzada, uno solo aplicado—, pero pasa lo mismo con
+cualquier vía cuyo límite cambie a lo largo del recorrido. Separarlos exigiría
+geometría por tramo que el callejero no trae.
+
+**Puede haber excepciones a la baja sin contemplar.** El código tiene tramos
+con límites reducidos —zonas escolares, algún tramo de Av. Corrientes— que no
+están en la tabla. Todas bajarían el ruido de vías que hoy figuran como
+ruidosas, así que el sesgo actual es conservador: ninguna cuadra queda mejor
+puntuada de lo que corresponde por este motivo.
 
 **El ruido de colectivos y el de tránsito no son independientes**: las avenidas
 concentran las dos cosas. Tomar el máximo evita contarlas dos veces.

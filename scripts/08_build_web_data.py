@@ -128,7 +128,7 @@ def build_blocks():
                 # domicilios, y cuánto ruido de tránsito tiene por su tipo de
                 # vía (proxy: velocidad máxima legal).
                 "r": props["tipo_c"] not in NO_ADDRESSES,
-                "tf": round(traffic_noise(props["tipo_c"]), 3),
+                "tf": round(traffic_noise(props["tipo_c"], props["nomoficial"]), 3),
             },
         })
     return {"type": "FeatureCollection", "features": features}
