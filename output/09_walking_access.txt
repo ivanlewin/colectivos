@@ -2,7 +2,8 @@
 ======================================================================
 Acceso caminando
 ======================================================================
-Líneas del padrón con paradas : 129
+Ramales del padrón con paradas: 550
+Líneas distintas              : 129
 Paradas distintas             : 19610
 
 Grafo peatonal: 31961 cuadras, 18148 esquinas
@@ -11,11 +12,13 @@ Grafo peatonal: 31961 cuadras, 18148 esquinas
 
 Paradas enganchadas al callejero: 8399
    descartadas por estar lejos   : 34064 (paradas del conurbano)
-   25/129 líneas procesadas
-   50/129 líneas procesadas
-   75/129 líneas procesadas
-   100/129 líneas procesadas
-   125/129 líneas procesadas
+
+Calculando alcance a 400 m por ramal...
+   100/550 ramales procesados
+   200/550 ramales procesados
+   300/550 ramales procesados
+   400/550 ramales procesados
+   500/550 ramales procesados
 
 ======================================================================
 Resultado
@@ -25,45 +28,58 @@ Líneas a 400 m caminando, por cuadra:
    máximo  : 37
    cuadras sin ninguna línea a pie: 1402 (4.4%)
 
-Promedio de líneas a pie por barrio — los 8 mejores y los 8 peores:
-    20.6  San Nicolas
-    19.5  Constitucion
-    18.0  Monserrat
-    16.7  Balvanera
-    15.8  San Telmo
-    12.2  San Cristobal
-    11.8  Almagro
-    11.0  Recoleta
+Colectivos por hora accesibles a pie:
+   mediana : 173
+   máximo  : 1323
+
+Por barrio — los 8 mejores y los 8 peores (líneas · col/hora):
+    20.6 ·    654   San Nicolas
+    19.5 ·    701   Constitucion
+    18.0 ·    595   Monserrat
+    16.7 ·    572   Balvanera
+    15.8 ·    477   San Telmo
+    12.2 ·    325   San Cristobal
+    11.8 ·    367   Almagro
+    11.0 ·    418   Recoleta
    ...
-     5.1  Villa Urquiza
-     5.1  Paternal
-     4.9  Agronomia
-     4.9  Villa Riachuelo
-     4.9  Mataderos
-     4.8  Villa Lugano
-     4.7  Villa Pueyrredon
-     2.1  Villa Soldati
+     5.1 ·    119   Villa Urquiza
+     5.1 ·    142   Paternal
+     4.9 ·    122   Agronomia
+     4.9 ·    147   Villa Riachuelo
+     4.9 ·    150   Mataderos
+     4.8 ·    110   Villa Lugano
+     4.7 ·    127   Villa Pueyrredon
+     2.1 ·     45   Villa Soldati
 
 ======================================================================
 Adelanto del Paso C: cuadras tranquilas y bien conectadas
 ======================================================================
-Cuadras sin ningún colectivo encima, ordenadas por líneas a pie:
 
-    36 líneas a pie · CIUDADELA                      Constitucion
-    35 líneas a pie · CIUDADELA                      Constitucion
-    32 líneas a pie · TACUARI                        Constitucion
-    32 líneas a pie · O'BRIEN                        Constitucion
-    31 líneas a pie · BRASIL                         Constitucion
-    30 líneas a pie · ALVEAR, MARCELO T. DE          Retiro
-    30 líneas a pie · FINOCHIETTO ENRIQUE DR.        Barracas
-    29 líneas a pie · CRUCERO GRAL. BELGRANO         Retiro
-    29 líneas a pie · RECONQUISTA                    San Nicolas
-    29 líneas a pie · CASTELLI                       Balvanera
-    29 líneas a pie · MISIONES                       Balvanera
-    29 líneas a pie · TACUARI                        Constitucion
-    29 líneas a pie · PIEDRAS                        
-    29 líneas a pie · SAN JOSE                       Constitucion
-    29 líneas a pie · DELLA PAOLERA, CARLOS M.       Retiro
+Sin colectivo encima, ordenadas por líneas a pie:
+
+    36 líneas ·   1303 col/h   CIUDADELA                    Constitucion
+    35 líneas ·   1292 col/h   CIUDADELA                    Constitucion
+    32 líneas ·   1158 col/h   TACUARI                      Constitucion
+    32 líneas ·   1145 col/h   O'BRIEN                      Constitucion
+    31 líneas ·    997 col/h   BRASIL                       Constitucion
+    30 líneas ·    960 col/h   ALVEAR, MARCELO T. DE        Retiro
+    30 líneas ·   1035 col/h   FINOCHIETTO ENRIQUE DR.      Barracas
+    29 líneas ·    925 col/h   CRUCERO GRAL. BELGRANO       Retiro
+    29 líneas ·    848 col/h   RECONQUISTA                  San Nicolas
+    29 líneas ·    970 col/h   CASTELLI                     Balvanera
+
+Sin colectivo encima, ordenadas por colectivos por hora a pie:
+
+    36 líneas ·   1303 col/h   CIUDADELA                    Constitucion
+    35 líneas ·   1292 col/h   CIUDADELA                    Constitucion
+    32 líneas ·   1158 col/h   TACUARI                      Constitucion
+    32 líneas ·   1145 col/h   O'BRIEN                      Constitucion
+    26 líneas ·   1118 col/h   BORGES, JORGE LUIS           Palermo
+    28 líneas ·   1088 col/h   COCHABAMBA                   Constitucion
+    25 líneas ·   1075 col/h   GUEMES                       Palermo
+    29 líneas ·   1068 col/h   PIEDRAS                      
+    25 líneas ·   1056 col/h   GURRUCHAGA                   Palermo
+    25 líneas ·   1045 col/h   GUEMES                       Palermo
 
 Hay 17016 cuadras sin colectivo encima; 429 tienen 20 o más líneas a pie.
 

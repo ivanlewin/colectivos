@@ -86,9 +86,8 @@ afecta justo a los barrios que ya aparecen peor conectados.
 ranking se concentra todavía más en el microcentro; con 800 m se aplana. Conviene
 que sea ajustable en la visualización en vez de quedar fijo.
 
-**Cuenta líneas, no servicio.** Una línea que pasa cada 4 minutos y otra que pasa
-cada 40 suman lo mismo. Pesar por frecuencia real usando `frequencies.txt` es el
-siguiente refinamiento.
+**Contar líneas y contar servicio son dos cosas distintas**, y por eso ahora se
+miden las dos. Ver [05-service-frequency.md](05-service-frequency.md).
 
 **Hereda la vigencia del GTFS 2019**, igual que el Paso A. Y arrastra el sesgo de
 que las paradas son las de 2019, que cambian más seguido que los recorridos.

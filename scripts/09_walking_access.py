@@ -54,34 +54,42 @@ def line_number(short_name):
     return int(match.group(1)) if match else None
 
 
-def stops_by_line(roster):
-    """{número de línea: {stop_id, ...}} para las líneas del padrón vigente.
+def stops_by_route(roster):
+    """{route_id: (línea, colectivos por hora, {stop_id, ...})}.
 
-    Encadena stop_times -> trips -> routes. En el feed *frequency* que usa el
+    Se agrupa por ramal y no por línea porque los ramales de una misma línea
+    paran en lugares distintos: sumarle a una cuadra la frecuencia de toda la
+    línea porque tiene cerca la parada de un solo ramal inflaría el acceso.
+
+    Encadena routes -> trips -> stop_times. En el feed *frequency* que usa el
     proyecto, stop_times.txt son 17 MB y entra en memoria sin problema; en el
-    GTFS completo son 1,4 GB y haría falta procesarlo en streaming.
+    GTFS completo el mismo archivo pesa 1,4 GB.
     """
-    route_line = {}
-    with (GTFS / "routes.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            n = line_number(row["route_short_name"])
-            if n in roster:
-                route_line[row["route_id"]] = n
+    route_line = {
+        row["route_id"]: common.line_number(row["route_short_name"])
+        for row in common.gtfs_rows("routes.txt")
+        if common.line_number(row["route_short_name"]) in roster
+    }
 
-    trip_line = {}
-    with (GTFS / "trips.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            n = route_line.get(row["route_id"])
-            if n is not None:
-                trip_line[row["trip_id"]] = n
+    per_trip = common.buses_per_hour_by_trip()
+    buses = collections.Counter()
+    trip_route = {}
+    for row in common.gtfs_rows("trips.txt"):
+        route_id = row["route_id"]
+        if route_id in route_line:
+            trip_route[row["trip_id"]] = route_id
+            buses[route_id] += per_trip.get(row["trip_id"], 0.0)
 
-    by_line = collections.defaultdict(set)
-    with (GTFS / "stop_times.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            n = trip_line.get(row["trip_id"])
-            if n is not None:
-                by_line[n].add(str(row["stop_id"]))
-    return by_line
+    stops = collections.defaultdict(set)
+    for row in common.gtfs_rows("stop_times.txt"):
+        route_id = trip_route.get(row["trip_id"])
+        if route_id is not None:
+            stops[route_id].add(str(row["stop_id"]))
+
+    return {
+        route_id: (route_line[route_id], buses[route_id], stop_ids)
+        for route_id, stop_ids in stops.items()
+    }
 
 
 def load_stop_coords(project):
@@ -156,9 +164,11 @@ def main():
     common.heading("Acceso caminando")
 
     roster = {int(p["linea"]) for p in common.properties()}
-    by_line = stops_by_line(roster)
-    print(f"Líneas del padrón con paradas : {len(by_line)}")
-    print(f"Paradas distintas             : {len({s for v in by_line.values() for s in v})}")
+    by_route = stops_by_route(roster)
+    print(f"Ramales del padrón con paradas: {len(by_route)}")
+    print(f"Líneas distintas              : {len({v[0] for v in by_route.values()})}")
+    print(f"Paradas distintas             : "
+          f"{len({s for v in by_route.values() for s in v[2]})}")
 
     stop_coords = load_stop_coords(project)
 
@@ -194,12 +204,13 @@ def main():
     print(f"\nParadas enganchadas al callejero: {len(entry_points)}")
     print(f"   descartadas por estar lejos   : {unmatched} (paradas del conurbano)")
 
-    # --- una corrida de Dijkstra por línea ---
+    # --- una corrida de Dijkstra por ramal ---
     lines_per_block = collections.defaultdict(set)
+    buses_per_block = collections.Counter()
     stops_near = collections.Counter()
-    block_index = {bid: i for i, (bid, _, _) in enumerate(graph.blocks)}
 
-    for count, (number, stop_ids) in enumerate(sorted(by_line.items()), 1):
+    print(f"\nCalculando alcance a {WALK_RADIUS_M} m por ramal...")
+    for count, (route_id, (number, buses, stop_ids)) in enumerate(sorted(by_route.items()), 1):
         sources = {}
         for stop_id in stop_ids:
             for node, distance in entry_points.get(stop_id, []):
@@ -210,9 +221,13 @@ def main():
         reached = graph.dijkstra(sources, WALK_RADIUS_M)
         for block_id, node_a, node_b in graph.blocks:
             if node_a in reached or node_b in reached:
+                # La línea se cuenta una sola vez aunque lleguen varios de sus
+                # ramales; los colectivos por hora se suman, porque cada ramal
+                # son servicios distintos.
                 lines_per_block[block_id].add(number)
-        if count % 25 == 0:
-            print(f"   {count}/{len(by_line)} líneas procesadas")
+                buses_per_block[block_id] += buses
+        if count % 100 == 0:
+            print(f"   {count}/{len(by_route)} ramales procesados")
 
     # Paradas a pie, sin distinguir línea: una sola corrida desde todas.
     all_sources = {}
@@ -245,6 +260,8 @@ def main():
             "lines_on": source.get("lines", ""),
             "n_lines_walk": len(walkable),
             "lines_walk": " ".join(f"{n:03d}" for n in walkable),
+            "buses_hour_walk": round(buses_per_block.get(block_id, 0.0), 1),
+            "buses_hour_on": float(source.get("buses_hour", 0) or 0),
             "n_stops_walk": stops_near.get(node_a, 0) + stops_near.get(node_b, 0),
         })
 
@@ -264,24 +281,35 @@ def main():
     print(f"   cuadras sin ninguna línea a pie: {sum(1 for c in walk_counts if c == 0)} "
           f"({100 * sum(1 for c in walk_counts if c == 0) / len(rows):.1f}%)")
 
-    print("\nPromedio de líneas a pie por barrio — los 8 mejores y los 8 peores:")
+    walk_buses = sorted(r["buses_hour_walk"] for r in rows)
+    print(f"\nColectivos por hora accesibles a pie:")
+    print(f"   mediana : {walk_buses[len(walk_buses) // 2]:.0f}")
+    print(f"   máximo  : {walk_buses[-1]:.0f}")
+
+    print("\nPor barrio — los 8 mejores y los 8 peores (líneas · col/hora):")
     by_barrio = collections.defaultdict(list)
     for r in rows:
         if r["barrio"]:
-            by_barrio[r["barrio"]].append(r["n_lines_walk"])
-    ranked = sorted(by_barrio.items(), key=lambda kv: -sum(kv[1]) / len(kv[1]))
+            by_barrio[r["barrio"]].append((r["n_lines_walk"], r["buses_hour_walk"]))
+    mean = lambda vs, i: sum(v[i] for v in vs) / len(vs)
+    ranked = sorted(by_barrio.items(), key=lambda kv: -mean(kv[1], 0))
     for name, values in ranked[:8]:
-        print(f"   {sum(values) / len(values):5.1f}  {name}")
+        print(f"   {mean(values, 0):5.1f} · {mean(values, 1):6.0f}   {name}")
     print("   ...")
     for name, values in ranked[-8:]:
-        print(f"   {sum(values) / len(values):5.1f}  {name}")
+        print(f"   {mean(values, 0):5.1f} · {mean(values, 1):6.0f}   {name}")
 
     common.heading("Adelanto del Paso C: cuadras tranquilas y bien conectadas")
-    print("Cuadras sin ningún colectivo encima, ordenadas por líneas a pie:\n")
     quiet = [r for r in rows if r["n_lines_on"] == 0 and r["tipo_c"] in ("CALLE", "PASAJE")]
-    quiet.sort(key=lambda r: -r["n_lines_walk"])
-    for r in quiet[:15]:
-        print(f"   {r['n_lines_walk']:3d} líneas a pie · {r['street']:30s} {r['barrio']}")
+
+    # Las dos métricas ordenan distinto: por eso la página las deja elegir.
+    for label, key in (("líneas a pie", "n_lines_walk"),
+                       ("colectivos por hora a pie", "buses_hour_walk")):
+        print(f"\nSin colectivo encima, ordenadas por {label}:\n")
+        for r in sorted(quiet, key=lambda r: -r[key])[:10]:
+            print(f"   {r['n_lines_walk']:3d} líneas · {r['buses_hour_walk']:6.0f} col/h   "
+                  f"{r['street']:28s} {r['barrio']}")
+
     print(f"\nHay {len(quiet)} cuadras sin colectivo encima; "
           f"{sum(1 for r in quiet if r['n_lines_walk'] >= 20)} tienen 20 o más líneas a pie.")
 

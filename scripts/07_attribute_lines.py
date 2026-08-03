@@ -66,51 +66,64 @@ INTERSECTION_SKIP_M = 15
 MIN_SAMPLE_RATIO = 0.6
 
 
-def line_number(short_name):
-    """'065A' -> 65. Devuelve None si no empieza con dígitos."""
-    match = re.match(r"(\d+)", short_name or "")
-    return int(match.group(1)) if match else None
-
-
 def epok_line_roster():
     """Números de línea del padrón vigente de EPOK."""
     return {int(p["linea"]) for p in common.properties()}
 
 
-def load_shape_segments(project, roster):
+def shape_service(roster):
+    """Servicio por traza: {shape_id: (número de línea, colectivos por hora)}.
+
+    La atribución se hace por traza y no por línea porque los ramales de una
+    misma línea no pasan por las mismas cuadras: sumar la frecuencia de toda la
+    línea a cualquier cuadra que toque uno de sus ramales inflaría el número.
+
+    Varios trips pueden compartir traza (típicamente ida y vuelta tienen la
+    suya, pero no siempre), así que la frecuencia se acumula.
+    """
+    route_line = {
+        row["route_id"]: common.line_number(row["route_short_name"])
+        for row in common.gtfs_rows("routes.txt")
+        if common.line_number(row["route_short_name"]) in roster
+    }
+
+    per_trip = common.buses_per_hour_by_trip()
+
+    service = {}
+    for row in common.gtfs_rows("trips.txt"):
+        number = route_line.get(row["route_id"])
+        shape_id = row.get("shape_id")
+        if number is None or not shape_id:
+            continue
+        line, buses = service.get(shape_id, (number, 0.0))
+        service[shape_id] = (line, buses + per_trip.get(row["trip_id"], 0.0))
+    return service
+
+
+def load_shape_segments(project, service):
     """Segmentos de las trazas GTFS, proyectados a metros.
 
-    Devuelve (lista de LineString, array de rumbos, array de número de línea).
+    Devuelve (lista de LineString, array de rumbos, array de índice de traza) y
+    la lista de shape_id en ese mismo orden.
     """
-    route_line = {}
-    with (GTFS / "routes.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            n = line_number(row["route_short_name"])
-            if n in roster:
-                route_line[row["route_id"]] = n
-
-    shape_line = {}
-    with (GTFS / "trips.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            n = route_line.get(row["route_id"])
-            if n is not None and row.get("shape_id"):
-                shape_line[row["shape_id"]] = n
-
     points = collections.defaultdict(list)
-    with (GTFS / "shapes.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            if row["shape_id"] in shape_line:
-                points[row["shape_id"]].append((
-                    int(row["shape_pt_sequence"]),
-                    float(row["shape_pt_lon"]),
-                    float(row["shape_pt_lat"]),
-                ))
+    for row in common.gtfs_rows("shapes.txt"):
+        if row["shape_id"] in service:
+            points[row["shape_id"]].append((
+                int(row["shape_pt_sequence"]),
+                float(row["shape_pt_lon"]),
+                float(row["shape_pt_lat"]),
+            ))
+
+    shape_ids = sorted(points)
+    index_of = {shape_id: i for i, shape_id in enumerate(shape_ids)}
 
     geoms, bearings, lines = [], [], []
-    for shape_id, pts in points.items():
+    for shape_id in shape_ids:
+        pts = points[shape_id]
         pts.sort()
         xs, ys = project([p[1] for p in pts], [p[2] for p in pts])
-        n = shape_line[shape_id]
+        n = index_of[shape_id]
         for i in range(len(xs) - 1):
             dx, dy = xs[i + 1] - xs[i], ys[i + 1] - ys[i]
             if dx == 0 and dy == 0:
@@ -118,7 +131,7 @@ def load_shape_segments(project, roster):
             geoms.append(LineString([(xs[i], ys[i]), (xs[i + 1], ys[i + 1])]))
             bearings.append(math.degrees(math.atan2(dx, dy)) % 180)
             lines.append(n)
-    return geoms, np.array(bearings), np.array(lines)
+    return geoms, np.array(bearings), np.array(lines), shape_ids
 
 
 def sample_block(coords):
@@ -170,9 +183,13 @@ def main():
     common.heading("Atribución de líneas a cuadras")
     print(f"Padrón EPOK vigente        : {len(roster)} líneas")
 
-    geoms, bearings, seg_lines = load_shape_segments(project, roster)
+    service = shape_service(roster)
+    geoms, bearings, seg_shapes, shape_ids = load_shape_segments(project, service)
+    print(f"Trazas (ramales)           : {len(shape_ids)}")
     print(f"Segmentos de traza GTFS    : {len(geoms)}")
-    print(f"Líneas con traza            : {len(set(seg_lines.tolist()))}")
+    print(f"Líneas con traza           : {len({v[0] for v in service.values()})}")
+    print(f"Colectivos/hora en la red  : "
+          f"{sum(v[1] for v in service.values()):.0f} (día hábil, 08:00)")
 
     tree = STRtree(geoms)
 
@@ -193,7 +210,7 @@ def main():
         xs, ys = project([p[0] for p in lonlat], [p[1] for p in lonlat])
         samples = sample_block(list(zip(xs, ys)))
 
-        hits = collections.Counter()
+        matched_shapes = []
         if samples:
             pts_x = np.array([s[0] for s in samples])
             pts_y = np.array([s[1] for s in samples])
@@ -208,14 +225,19 @@ def main():
             if pairs.size:
                 delta = np.abs(sample_bearings[pairs[0]] - bearings[pairs[1]])
                 aligned = np.minimum(delta, 180 - delta) <= BEARING_TOLERANCE_DEG
-                per_line = collections.defaultdict(set)
-                for sample_idx, line in zip(pairs[0][aligned], seg_lines[pairs[1][aligned]]):
-                    per_line[int(line)].add(int(sample_idx))
-                for line, matched in per_line.items():
-                    if len(matched) / len(samples) >= MIN_SAMPLE_RATIO:
-                        hits[line] = len(matched)
+                per_shape = collections.defaultdict(set)
+                for sample_idx, shape in zip(pairs[0][aligned], seg_shapes[pairs[1][aligned]]):
+                    per_shape[int(shape)].add(int(sample_idx))
+                matched_shapes = [
+                    shape_ids[shape] for shape, hit in per_shape.items()
+                    if len(hit) / len(samples) >= MIN_SAMPLE_RATIO
+                ]
 
-        found = sorted(hits)
+        # Las líneas se cuentan una vez aunque pasen varios ramales; los
+        # colectivos por hora se suman, porque cada ramal son buses distintos.
+        lines_here = sorted({service[s][0] for s in matched_shapes})
+        buses_here = sum(service[s][1] for s in matched_shapes)
+
         rows.append({
             "block_id": props["id"],
             "street": props["nomoficial"],
@@ -223,8 +245,10 @@ def main():
             "tipo_c": props["tipo_c"],
             "red_jerarq": props["red_jerarq"],
             "length_m": round(props["long"], 1),
-            "n_lines": len(found),
-            "lines": " ".join(f"{n:03d}" for n in found),
+            "n_lines": len(lines_here),
+            "lines": " ".join(f"{n:03d}" for n in lines_here),
+            "n_shapes": len(matched_shapes),
+            "buses_hour": round(buses_here, 1),
         })
 
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as fh:
@@ -244,18 +268,33 @@ def main():
     for n in sorted(counts)[:12]:
         print(f"   {n:2d} líneas: {counts[n]:6d} cuadras")
 
-    print("\nControl de calidad — promedio de líneas por jerarquía de vía:")
+    buses = [r["buses_hour"] for r in rows if r["buses_hour"] > 0]
+    buses.sort()
+    print(f"\nColectivos por hora (día hábil, 08:00), en las cuadras que tienen:")
+    print(f"   mediana : {buses[len(buses) // 2]:.1f}")
+    print(f"   p90     : {buses[int(len(buses) * 0.9)]:.1f}")
+    print(f"   máximo  : {buses[-1]:.1f}")
+
+    print("\nControl de calidad — promedio por jerarquía de vía:")
+    print(f"   {'':36s} {'líneas':>7s} {'col/hora':>9s}")
     by_type = collections.defaultdict(list)
     for r in rows:
-        by_type[r["red_jerarq"]].append(r["n_lines"])
-    for key in sorted(by_type, key=lambda k: -np.mean(by_type[k])):
+        by_type[r["red_jerarq"]].append((r["n_lines"], r["buses_hour"]))
+    for key in sorted(by_type, key=lambda k: -np.mean([v[0] for v in by_type[k]])):
         values = by_type[key]
-        print(f"   {str(key):36s} {np.mean(values):5.2f}  ({len(values)} cuadras)")
+        print(f"   {str(key):36s} {np.mean([v[0] for v in values]):7.2f} "
+              f"{np.mean([v[1] for v in values]):9.2f}  ({len(values)} cuadras)")
     print("Las troncales tienen que estar arriba y las vías locales abajo.")
 
     print("\nLas 10 cuadras con más líneas:")
     for r in sorted(rows, key=lambda r: -r["n_lines"])[:10]:
-        print(f"   {r['n_lines']:2d}  {r['street']:28s} {r['barrio']}")
+        print(f"   {r['n_lines']:2d} líneas · {r['buses_hour']:5.1f} col/h  "
+              f"{r['street']:28s} {r['barrio']}")
+
+    print("\nLas 10 cuadras con más colectivos por hora:")
+    for r in sorted(rows, key=lambda r: -r["buses_hour"])[:10]:
+        print(f"   {r['n_lines']:2d} líneas · {r['buses_hour']:5.1f} col/h  "
+              f"{r['street']:28s} {r['barrio']}")
 
     print(f"\nEscrito {OUTPUT_CSV.relative_to(common.ROOT)}")
 

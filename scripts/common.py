@@ -6,7 +6,10 @@ Centraliza tres cosas que todos los scripts necesitan:
   - la definición del sistema de coordenadas en el que vienen las geometrías.
 """
 
+import collections
+import csv
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,3 +71,59 @@ def transformer():
 
 def heading(text):
     print(f"\n{'=' * 70}\n{text}\n{'=' * 70}")
+
+
+# --------------------------------------------------------------------- GTFS
+
+GTFS = ROOT / "data" / "gtfs_frequency"
+
+# Momento de referencia para medir el servicio: un día hábil a las 08:00.
+# El GTFS modela el servicio por franjas con una frecuencia cada una, así que
+# hay que pararse en un instante concreto. A las 08:00 está activo el 96 % de
+# los trips de día hábil, que es el máximo del día.
+PEAK_SERVICE_ID = "HI"    # HI = hábil, SI = sábado, DI = domingo, FI = feriado
+PEAK_SECONDS = 8 * 3600
+
+
+def line_number(short_name):
+    """'065A' -> 65. None si no arranca con dígitos."""
+    match = re.match(r"(\d+)", short_name or "")
+    return int(match.group(1)) if match else None
+
+
+def _seconds(clock):
+    hours, minutes, seconds = (int(p) for p in clock.split(":"))
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def buses_per_hour_by_trip():
+    """{trip_id: colectivos por hora} en el momento de referencia.
+
+    Sólo trips del servicio de día hábil. Un trip sin franja activa a esa hora
+    queda afuera: ese servicio no está circulando.
+    """
+    windows = collections.defaultdict(list)
+    with (GTFS / "frequencies.txt").open(encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            windows[row["trip_id"]].append((
+                _seconds(row["start_time"]),
+                _seconds(row["end_time"]),
+                int(row["headway_secs"]),
+            ))
+
+    per_trip = {}
+    with (GTFS / "trips.txt").open(encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if row["service_id"] != PEAK_SERVICE_ID:
+                continue
+            for start, end, headway in windows.get(row["trip_id"], ()):
+                if start <= PEAK_SECONDS < end and headway:
+                    per_trip[row["trip_id"]] = 3600 / headway
+                    break
+    return per_trip
+
+
+def gtfs_rows(name):
+    """Filas de un archivo del GTFS como diccionarios."""
+    with (GTFS / name).open(encoding="utf-8") as fh:
+        yield from csv.DictReader(fh)

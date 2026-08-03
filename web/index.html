@@ -160,6 +160,18 @@
   .legend-row span { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .legend-gap { height: 6px; }
 
+  .controls { margin: -2px 0 12px; display: grid; gap: 7px; }
+  .controls label {
+    display: grid; gap: 3px;
+    font-size: 11px; color: var(--ink-muted);
+  }
+  .controls select {
+    width: 100%; padding: 4px 6px;
+    font: inherit; font-size: 13px; color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px;
+  }
+
   footer { margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--ink-muted); }
   footer a { color: inherit; }
 
@@ -177,6 +189,10 @@
   .pop-meta { color: var(--ink-muted); font-size: 12px; margin-bottom: 6px; }
   .pop-lines { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
   .pop-none { color: var(--ink-muted); font-size: 12px; font-style: italic; }
+  .pop-walk {
+    margin-top: 5px; padding-top: 5px;
+    border-top: 1px solid var(--border);
+  }
 </style>
 <script>
   // Se aplica antes de pintar nada: si no, al recargar con un tema elegido a
@@ -196,7 +212,8 @@
     <h1>Colectivos, cuadra por cuadra</h1>
     <button id="theme-btn" type="button"></button>
   </div>
-  <p class="sub">31.961 cuadras de la Ciudad, con las líneas que pasan por cada una.</p>
+  <p class="sub">31.961 cuadras de la Ciudad: qué colectivos pasan por cada una
+    y a cuáles se llega caminando.</p>
 
   <div class="field-head">
     <label id="picker-label-el" for="picker-btn">Recorridos</label>
@@ -220,7 +237,25 @@
   <p id="pick-info"></p>
 
   <div class="section">
-    <h2>Líneas que pasan por la cuadra</h2>
+    <h2 id="legend-title">Líneas que pasan por la cuadra</h2>
+
+    <div class="controls">
+      <label>
+        Mostrar
+        <select id="layer-mode">
+          <option value="on">Lo que pasa por la cuadra</option>
+          <option value="walk">Lo que se toma a pie</option>
+        </select>
+      </label>
+      <label>
+        Medido en
+        <select id="metric-mode">
+          <option value="lines">Cantidad de líneas</option>
+          <option value="buses">Colectivos por hora</option>
+        </select>
+      </label>
+    </div>
+
     <div id="legend"></div>
   </div>
 
@@ -234,15 +269,51 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
-// "ninguna" va aparte: es un estado, no el escalón más bajo de la escala. Por
-// eso lleva un neutro y no participa de la rampa de azules.
-const NONE_CLASS = { label: 'ninguna', varName: '--n0', width: 0.3, swatch: 1.5 };
-const BREAKS = [
-  { min: 1,  label: '1 a 2',    varName: '--n1', width: 0.8, swatch: 2 },
-  { min: 3,  label: '3 a 5',    varName: '--n2', width: 1.3, swatch: 3 },
-  { min: 6,  label: '6 a 10',   varName: '--n3', width: 1.9, swatch: 4 },
-  { min: 11, label: '11 o más', varName: '--n4', width: 2.6, swatch: 5 },
+// Cuatro vistas: dos preguntas (¿qué pasa por encima? ¿qué alcanzo a pie?) por
+// dos unidades (líneas o colectivos por hora). Las unidades no ordenan igual —
+// una línea cada 4 minutos no es lo mismo que una cada 40— así que se eligen.
+//
+// El escalón "ninguna" va aparte, en un neutro fuera de la rampa: es un estado,
+// no el valor más bajo de una magnitud. Los cortes salen de los cuartiles de
+// cada distribución, redondeados a números legibles.
+const CLASS_STYLE = [
+  { varName: '--n0', width: 0.3, swatch: 1.5 },   // ninguna
+  { varName: '--n1', width: 0.8, swatch: 2 },
+  { varName: '--n2', width: 1.3, swatch: 3 },
+  { varName: '--n3', width: 1.9, swatch: 4 },
+  { varName: '--n4', width: 2.6, swatch: 5 },
 ];
+
+const VIEWS = {
+  'on-lines': {
+    prop: 'n', none: 'ninguna',
+    breaks: [1, 3, 6, 11],
+    labels: ['1 a 2', '3 a 5', '6 a 10', '11 o más'],
+    caption: 'Líneas que pasan por la cuadra',
+  },
+  'on-buses': {
+    prop: 'bh', none: 'ninguno',
+    breaks: [1, 25, 75, 150],
+    labels: ['1 a 24', '25 a 74', '75 a 149', '150 o más'],
+    caption: 'Colectivos por hora que pasan por la cuadra',
+  },
+  'walk-lines': {
+    prop: 'nw', none: 'ninguna',
+    breaks: [1, 5, 10, 20],
+    labels: ['1 a 4', '5 a 9', '10 a 19', '20 o más'],
+    caption: 'Líneas que se toman caminando 400 m',
+  },
+  'walk-buses': {
+    prop: 'bw', none: 'ninguno',
+    breaks: [1, 100, 200, 400],
+    labels: ['1 a 99', '100 a 199', '200 a 399', '400 o más'],
+    caption: 'Colectivos por hora a 400 m caminando',
+  },
+};
+
+let layerMode = 'on';       // 'on' = pasan por la cuadra | 'walk' = a pie
+let metricMode = 'lines';   // 'lines' | 'buses'
+const view = () => VIEWS[`${layerMode}-${metricMode}`];
 
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -278,18 +349,20 @@ const basemap = () => isDark()
   : 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
 function colorExpression() {
-  const expr = ['step', ['get', 'n'], css(NONE_CLASS.varName)];
-  for (const b of BREAKS) expr.push(b.min, css(b.varName));
+  const v = view();
+  const expr = ['step', ['get', v.prop], css(CLASS_STYLE[0].varName)];
+  v.breaks.forEach((min, i) => expr.push(min, css(CLASS_STYLE[i + 1].varName)));
   return expr;
 }
 
 // El grosor repite la misma escala que el color: codificación redundante a
-// propósito, porque a escala de ciudad las 19.070 cuadras sin colectivo tapan
+// propósito, porque a escala de ciudad las cuadras del escalón más bajo tapan
 // todo y los corredores se tienen que leer sin distinguir tonos.
 function widthExpression() {
+  const v = view();
   const atZoom = factor => {
-    const expr = ['step', ['get', 'n'], NONE_CLASS.width * factor];
-    for (const b of BREAKS) expr.push(b.min, b.width * factor);
+    const expr = ['step', ['get', v.prop], CLASS_STYLE[0].width * factor];
+    v.breaks.forEach((min, i) => expr.push(min, CLASS_STYLE[i + 1].width * factor));
     return expr;
   };
   return ['interpolate', ['linear'], ['zoom'],
@@ -392,8 +465,11 @@ map.on('load', async () => {
       <div class="pop-street">${p.s}${p.a ? ` <span class="pop-alt">${p.a}</span>` : ''}</div>
       <div class="pop-meta">${p.b || 'sin barrio asignado'} · ${p.t.toLowerCase()}</div>
       ${lines
-        ? `<div class="pop-lines"><b>${p.n}</b> ${p.n === 1 ? 'línea' : 'líneas'}: ${lines}</div>`
+        ? `<div class="pop-lines">Por acá pasan <b>${p.n}</b> ` +
+          `${p.n === 1 ? 'línea' : 'líneas'}, <b>${p.bh}</b> col/hora<br>${lines}</div>`
         : '<div class="pop-none">No pasa ningún colectivo</div>'}
+      <div class="pop-lines pop-walk">A pie: <b>${p.nw}</b> ` +
+        `${p.nw === 1 ? 'línea' : 'líneas'}, <b>${p.bw}</b> col/hora</div>
     `).addTo(map);
   });
   map.on('mouseenter', 'blocks-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -549,22 +625,46 @@ pickerSearch.addEventListener('keydown', event => {
 /* ----------------------------------------------------------------- leyenda */
 
 function buildLegend() {
+  const v = view();
+  document.getElementById('legend-title').textContent = v.caption;
+
   const legend = document.getElementById('legend');
   legend.innerHTML = '';
-  const row = cls => {
+  const row = (label, i) => {
+    const style = CLASS_STYLE[i];
     const el = document.createElement('div');
     el.className = 'legend-row';
     el.innerHTML =
-      `<div class="swatch" style="background:${css(cls.varName)};height:${cls.swatch}px"></div>` +
-      `<span>${cls.label}</span>`;
+      `<div class="swatch" style="background:${css(style.varName)};` +
+      `height:${style.swatch}px"></div><span>${label}</span>`;
     return el;
   };
-  legend.appendChild(row(NONE_CLASS));
+  legend.appendChild(row(v.none, 0));
   // El corte visual separa el estado "ninguna" de la escala de magnitud.
   const gap = document.createElement('div');
   gap.className = 'legend-gap';
   legend.appendChild(gap);
-  for (const b of BREAKS) legend.appendChild(row(b));
+  v.labels.forEach((label, i) => legend.appendChild(row(label, i + 1)));
+}
+
+/* ------------------------------------------------------------- controles */
+
+function applyView() {
+  if (map.getLayer('blocks')) {
+    map.setPaintProperty('blocks', 'line-color', colorExpression());
+    map.setPaintProperty('blocks', 'line-width', widthExpression());
+  }
+  buildLegend();
+}
+
+for (const [id, apply] of [
+  ['layer-mode',  value => { layerMode = value; }],
+  ['metric-mode', value => { metricMode = value; }],
+]) {
+  document.getElementById(id).addEventListener('change', event => {
+    apply(event.target.value);
+    applyView();
+  });
 }
 
 /* -------------------------------------------------------------- tema (UI) */

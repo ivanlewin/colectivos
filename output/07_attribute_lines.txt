@@ -1,0 +1,81 @@
+
+======================================================================
+Atribución de líneas a cuadras
+======================================================================
+Padrón EPOK vigente        : 132 líneas
+Trazas (ramales)           : 1091
+Segmentos de traza GTFS    : 409090
+Líneas con traza           : 129
+Colectivos/hora en la red  : 4788 (día hábil, 08:00)
+Cuadras del callejero      : 31961
+
+Parámetros: 15 m de distancia, 30° de rumbo, muestreo cada 10 m,
+ignorando 15 m en cada esquina, mínimo 60% de muestras.
+
+   5000/31961 cuadras procesadas
+   10000/31961 cuadras procesadas
+   15000/31961 cuadras procesadas
+   20000/31961 cuadras procesadas
+   25000/31961 cuadras procesadas
+   30000/31961 cuadras procesadas
+
+======================================================================
+Resultado
+======================================================================
+Cuadras sin ninguna línea  : 19100 (59.8%)
+Cuadras con al menos una   : 12861 (40.2%)
+Máximo de líneas en una cuadra: 29
+
+Distribución:
+    0 líneas:  19100 cuadras
+    1 líneas:   4745 cuadras
+    2 líneas:   2706 cuadras
+    3 líneas:   1723 cuadras
+    4 líneas:   1222 cuadras
+    5 líneas:    662 cuadras
+    6 líneas:    471 cuadras
+    7 líneas:    363 cuadras
+    8 líneas:    208 cuadras
+    9 líneas:    178 cuadras
+   10 líneas:    130 cuadras
+   11 líneas:     75 cuadras
+
+Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
+   mediana : 30.0
+   p90     : 122.9
+   máximo  : 892.2
+
+Control de calidad — promedio por jerarquía de vía:
+                                         líneas  col/hora
+   VÍA DISTRIBUIDORA PRINCIPAL             4.58     96.91  (3956 cuadras)
+   VÍA TRONCAL                             3.27     48.23  (995 cuadras)
+   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.54     26.25  (3965 cuadras)
+   VÍA LOCAL                               0.56      8.23  (23044 cuadras)
+   None                                    0.00      0.00  (1 cuadras)
+Las troncales tienen que estar arriba y las vías locales abajo.
+
+Las 10 cuadras con más líneas:
+   29 líneas · 534.5 col/h  IRIGOYEN, BERNARDO DE        Constitucion
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   26 líneas · 431.7 col/h  SAN MARTIN                   Retiro
+   26 líneas · 402.9 col/h  ANTARTIDA ARGENTINA AV.      Retiro
+   26 líneas · 431.7 col/h  SAN MARTIN                   Retiro
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+
+Las 10 cuadras con más colectivos por hora:
+   22 líneas · 892.2 col/h  SANTA FE AV.                 Palermo
+   22 líneas · 892.2 col/h  SANTA FE AV.                 Palermo
+   20 líneas · 855.0 col/h  SANTA FE AV.                 Palermo
+   20 líneas · 809.1 col/h  SANTA FE AV.                 Palermo
+   20 líneas · 809.1 col/h  SANTA FE AV.                 Palermo
+   19 líneas · 764.6 col/h  SANTA FE AV.                 Palermo
+   21 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
+   21 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
+   21 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
+   19 líneas · 626.7 col/h  SANTA FE AV.                 Palermo
+
+Escrito output/blocks_lines.csv

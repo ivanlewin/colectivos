@@ -26,6 +26,7 @@ import common
 GTFS = common.ROOT / "data" / "gtfs_frequency"
 STREETS = common.ROOT / "data" / "streets.geojson"
 BLOCKS_CSV = common.ROOT / "output" / "blocks_lines.csv"
+ACCESS_CSV = common.ROOT / "output" / "blocks_access.csv"
 WEB_DATA = common.ROOT / "web" / "data"
 
 # Decimales de latitud/longitud que se conservan. 5 decimales son ~1 m, de
@@ -73,11 +74,24 @@ def house_range(props):
 
 
 def build_blocks():
-    """Cuadras del callejero con el resultado de la atribución."""
+    """Cuadras del callejero con el resultado de los pasos A y B.
+
+    Cada cuadra lleva cuatro métricas, dos por dos: lo que pasa *por encima*
+    (el ruido) contra lo que se alcanza *a pie* (el acceso), y cada una medida
+    en cantidad de líneas o en colectivos por hora. Las dos unidades no ordenan
+    igual —una línea cada 4 minutos no es lo mismo que una cada 40— así que la
+    página deja elegir.
+    """
     attribution = {}
     with BLOCKS_CSV.open(encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             attribution[int(row["block_id"])] = row
+
+    access = {}
+    if ACCESS_CSV.exists():
+        with ACCESS_CSV.open(encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                access[int(row["block_id"])] = row
 
     features = []
     for feature in json.loads(STREETS.read_text(encoding="utf-8"))["features"]:
@@ -85,11 +99,18 @@ def build_blocks():
         row = attribution.get(props["id"])
         if row is None:
             continue
+        walk = access.get(props["id"], {})
         features.append({
             "type": "Feature",
             "geometry": round_coords(feature["geometry"]),
             "properties": {
+                # Pasan por la cuadra.
                 "n": int(row["n_lines"]),
+                "bh": round(float(row["buses_hour"])),
+                # Se toman a pie, a 400 m por la red de calles.
+                "nw": int(walk.get("n_lines_walk", 0)),
+                "bw": round(float(walk.get("buses_hour_walk", 0) or 0)),
+                # Identificación.
                 "s": props["nom_mapa"] or props["nomoficial"],
                 "a": house_range(props),
                 "b": props["barrio"] or "",

@@ -188,13 +188,36 @@ cuadras sin colectivo encima, **429 tienen 20 o más líneas a pie** — Ciudade
 Tacuarí en Constitución, Marcelo T. de Alvear en Retiro, Finochietto en
 Barracas.
 
+### 2026-08-03 — Medir en colectivos por hora, no sólo en líneas
+
+Contar líneas engaña: una que pasa cada 4 minutos y otra cada 40 suman lo mismo.
+Se agregó la frecuencia real desde `frequencies.txt`, tomando como referencia un
+día hábil a las 08:00 (7.799 colectivos/hora en toda la red).
+
+El cambio de fondo fue **atribuir por ramal y no por línea**: la 96 tiene 70
+trazas, y sumarle a una cuadra la frecuencia de toda la línea porque ve pasar un
+solo ramal inflaría el número varias veces. Las líneas se cuentan una vez; los
+colectivos por hora se suman. → [docs/05-service-frequency.md](docs/05-service-frequency.md)
+
+Las dos unidades ordenan distinto, que es justamente el punto: por líneas
+ganan los centros de trasbordo (Bernardo de Irigoyen, Retiro), por frecuencia
+gana **Av. Santa Fe en Palermo** con 892 colectivos/hora. Entre las cuadras
+tranquilas pasa lo mismo: por líneas domina Constitución, por frecuencia entra
+Palermo.
+
+La página ahora tiene dos selectores —qué mirar (lo que pasa por la cuadra / lo
+que se toma a pie) y en qué unidad— con su propia escala de cortes cada
+combinación. El acceso a pie quedó así incorporado al mapa.
+
 Próximos pasos, en orden:
 
-- [ ] Paso C: índice de cuadra ideal, con pesos ajustables en la página.
-- [ ] Llevar el acceso a pie al mapa como capa conmutable.
+- [ ] Paso C: índice de cuadra ideal, combinando ruido y acceso con pesos
+      ajustables en la página.
 - [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
       que las cuadras pegadas a la General Paz y al Riachuelo quedan
       subestimadas.
+- [ ] Permitir cambiar la hora de referencia: hoy son las 08:00 de un día hábil,
+      fijas en una constante.
 - [ ] Excluir autopistas del índice: van elevadas sobre calles de superficie y
       el análisis en dos dimensiones no puede separarlas.
 - [ ] Pesar el ruido por colectivos/hora usando `frequencies.txt`, no por
