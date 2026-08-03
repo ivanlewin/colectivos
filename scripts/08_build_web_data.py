@@ -53,6 +53,25 @@ def line_number(short_name):
     return int(match.group(1)) if match else None
 
 
+def house_range(props):
+    """Rango de altura catastral de la cuadra, p. ej. '1200–1299'.
+
+    El callejero trae cuatro números: principio y fin de cada vereda (la de
+    altura par y la de impar). El rango de la cuadra es el mínimo y el máximo
+    de los cuatro. 3.468 de las 31.961 cuadras no tienen numeración: para ésas
+    devuelve cadena vacía.
+    """
+    values = [
+        props[key] for key in
+        ("alt_izqini", "alt_izqfin", "alt_derini", "alt_derfin")
+        if props.get(key)
+    ]
+    if not values:
+        return ""
+    low, high = int(min(values)), int(max(values))
+    return str(low) if low == high else f"{low}–{high}"
+
+
 def build_blocks():
     """Cuadras del callejero con el resultado de la atribución."""
     attribution = {}
@@ -72,6 +91,7 @@ def build_blocks():
             "properties": {
                 "n": int(row["n_lines"]),
                 "s": props["nom_mapa"] or props["nomoficial"],
+                "a": house_range(props),
                 "b": props["barrio"] or "",
                 "t": props["tipo_c"],
                 "l": row["lines"],

@@ -20,4 +20,22 @@ fi
 
 echo "Abriendo http://localhost:$PORT"
 cd "$ROOT/web"
-exec python3 -m http.server "$PORT"
+
+# El http.server pelado no manda Cache-Control, así que el navegador se queda
+# con una copia vieja de los GeoJSON: regenerás los datos, recargás, y seguís
+# viendo lo anterior. Con no-cache revalida siempre.
+exec python3 -c '
+import sys
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, must-revalidate")
+        super().end_headers()
+
+
+port = int(sys.argv[1])
+ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+' "$PORT"
