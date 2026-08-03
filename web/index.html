@@ -381,9 +381,16 @@ const NORM = {
 // un dato, así que se ajusta con el control de la página.
 let noiseWeight = 1.0;
 
-// El índice: acceso normalizado menos ruido normalizado, recortado en cero y
-// llevado a 0..100. Las cuadras donde no vive nadie devuelven -1 y caen en la
-// clase neutra, fuera del ranking.
+// El índice: acceso menos ruido, recortado en cero y llevado a 0..100.
+//
+// El ruido tiene dos fuentes y se toma la peor. Los colectivos que pasan por
+// la cuadra, y el tránsito general, que se estima con la velocidad máxima
+// legal del tipo de vía (`tf`, precalculado en 08_build_web_data.py). Sin la
+// segunda, la 9 de Julio puntuaba 85 sobre 100: no tiene colectivos
+// atribuidos en algunas de sus calzadas, pero sigue siendo la 9 de Julio.
+//
+// Las cuadras sin domicilios —autopistas, puentes, senderos de parque—
+// devuelven -1 y caen en la clase neutra, fuera del ranking.
 function indexExpression(metric) {
   const norm = NORM[metric];
   const access = metric === 'lines' ? 'nw' : 'bw';
@@ -393,7 +400,8 @@ function indexExpression(metric) {
     ['!', ['get', 'r']], -1,
     ['*', 100, ['max', 0,
       ['-', normalized(access, norm.access),
-            ['*', noiseWeight, normalized(noise, norm.noise)]]]],
+            ['*', noiseWeight,
+                  ['max', normalized(noise, norm.noise), ['get', 'tf']]]]]],
   ];
 }
 
@@ -806,7 +814,8 @@ function blockScore(block, metric) {
   const access = metric === 'lines' ? block.nw : block.bw;
   const noise = metric === 'lines' ? block.n : block.bh;
   return Math.max(0,
-    Math.min(1, access / norm.access) - noiseWeight * Math.min(1, noise / norm.noise)) * 100;
+    Math.min(1, access / norm.access)
+      - noiseWeight * Math.max(Math.min(1, noise / norm.noise), block.tf)) * 100;
 }
 
 function buildRanking() {

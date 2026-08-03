@@ -1,57 +1,92 @@
 
 ======================================================================
+Ruido de tránsito por tipo de vía
+======================================================================
+Proxy: velocidad máxima legal (Ley 2148, art. 6.2.2).
+
+   PASAJE                20 km/h -> ruido 0.00     1387 cuadras
+   SENDERO               20 km/h -> ruido 0.00      485 cuadras   (sin domicilios)
+   CALLE PEATONAL        20 km/h -> ruido 0.00       42 cuadras
+   PASAJE PARTICULAR     20 km/h -> ruido 0.00       35 cuadras
+   PASAJE PEATONAL       20 km/h -> ruido 0.00       22 cuadras
+   CALLE PASAJE PARTICULAR  20 km/h -> ruido 0.00        1 cuadras
+   PASAJE PÚBLICO        20 km/h -> ruido 0.00        1 cuadras
+   CALLE                 40 km/h -> ruido 0.25    22554 cuadras
+   BOULEVARD             40 km/h -> ruido 0.25       67 cuadras
+                         40 km/h -> ruido 0.25        1 cuadras
+   AVENIDA               60 km/h -> ruido 0.50     6994 cuadras
+   PUENTE                60 km/h -> ruido 0.50       65 cuadras   (sin domicilios)
+   TÚNEL                 60 km/h -> ruido 0.50        1 cuadras   (sin domicilios)
+   AUTOPISTA            100 km/h -> ruido 1.00      117 cuadras   (sin domicilios)
+   BAJADA AUTOPISTA     100 km/h -> ruido 1.00       69 cuadras   (sin domicilios)
+   ENLACE AUTOPISTA     100 km/h -> ruido 1.00       62 cuadras   (sin domicilios)
+   SUBIDA AUTOPISTA     100 km/h -> ruido 1.00       58 cuadras   (sin domicilios)
+
+======================================================================
 Constantes de normalización
 ======================================================================
 Son las que usa la página. Si cambian los datos, hay que
 actualizarlas también en web/index.html (constante NORM).
 
-                         acceso (p99)   ruido (p95)   saturan arriba
-líneas                           26.0           6.0   369
-colectivos por hora             860.8         111.2   320
+                         acceso (p99)   colectivos (p95)
+líneas                           26.0                6.0
+colectivos por hora             860.8              111.2
 
-Cuadras en el ranking: 31104 de 31961 (857 descartadas por no ser residenciales)
+Cuadras candidatas: 31104 de 31961 (857 sin domicilios)
 
 ======================================================================
 Las 15 mejores cuadras, medido en líneas
 ======================================================================
 (peso del ruido = 1.0)
 
-   100.0   0 encima · 26 a pie   BORGES, JORGE LUIS             Palermo
-   100.0   0 encima · 26 a pie   COMBATE DE COSTA BRAVA         Retiro
-   100.0   0 encima · 27 a pie   RAMOS MEJIA, JOSE MARIA, DR. A Retiro
-   100.0   0 encima · 27 a pie   PADRE CARLOS MUGICA            Retiro
-   100.0   0 encima · 27 a pie   BASAVILBASO                    Retiro
-   100.0   0 encima · 27 a pie   BASAVILBASO                    Retiro
-   100.0   0 encima · 29 a pie   CRUCERO GRAL. BELGRANO         Retiro
-   100.0   0 encima · 27 a pie   RECONQUISTA                    Retiro
-   100.0   0 encima · 27 a pie   ALVEAR, MARCELO T. DE          Retiro
-   100.0   0 encima · 27 a pie   RECONQUISTA                    Retiro
-   100.0   0 encima · 30 a pie   ALVEAR, MARCELO T. DE          Retiro
-   100.0   0 encima · 27 a pie   SAN MARTIN                     Retiro
-   100.0   0 encima · 26 a pie   BUTTY, ENRIQUE, ING.           Retiro
-   100.0   0 encima · 26 a pie   RECONQUISTA                    Retiro
-   100.0   0 encima · 27 a pie   SAN MARTIN                     Retiro
+   100.0  PASAJE   0 encima · 35 a pie   CIUDADELA                    Constitucion
+   100.0  PASAJE   0 encima · 35 a pie   GIORELLO, PABLO              Constitucion
+    96.2  PASAJE   0 encima · 25 a pie   BUERAS                       Liniers
+    92.3  PASAJE   0 encima · 24 a pie   CASCO                        Liniers
+    92.3  PASAJE   0 encima · 24 a pie   LEBENSOHN, MOISES            Nueva Pompeya
+    92.3  PASAJE   0 encima · 24 a pie   KAVANAGH, CORINA             Retiro
+    88.5  PASAJE   0 encima · 23 a pie   LEBENSOHN, MOISES            Nueva Pompeya
+    84.6  PASAJE   0 encima · 22 a pie   CARABELAS                    San Nicolas
+    84.6  PASAJE   0 encima · 22 a pie   MOMPOX                       Constitucion
+    80.8  PASAJE   0 encima · 21 a pie   TIMBO                        Flores
+    80.8  PASAJE   0 encima · 21 a pie   RICCIO, GUSTAVO              Flores
+    80.8  CALLE P  0 encima · 21 a pie   SALALA                       Flores
+    80.8  CALLE P  0 encima · 21 a pie   ESPEJO, GERONIMO, GRAL.      Flores
+    80.8  CALLE P  0 encima · 21 a pie   PESCADORES                   Flores
+    80.8  CALLE P  0 encima · 21 a pie   SALALA                       Flores
 
 ======================================================================
 Las 15 mejores cuadras, medido en colectivos por hora
 ======================================================================
 (peso del ruido = 1.0)
 
-   100.0   0 encima · 22 a pie   BERUTI                         Palermo
-   100.0   0 encima · 23 a pie   BERUTI                         Palermo
-   100.0   0 encima · 21 a pie   BERUTI                         Palermo
-   100.0   0 encima · 23 a pie   GUEMES                         Palermo
-   100.0   0 encima · 23 a pie   DARREGUEYRA                    Palermo
-   100.0   0 encima · 21 a pie   GUEMES                         Palermo
-   100.0   0 encima · 21 a pie   CHARCAS                        Palermo
-   100.0   0 encima · 24 a pie   GUEMES                         Palermo
-   100.0   0 encima · 26 a pie   BORGES, JORGE LUIS             Palermo
-   100.0   0 encima · 25 a pie   GUEMES                         Palermo
-   100.0   0 encima · 23 a pie   REPUBLICA ARABE SIRIA          Palermo
-   100.0   0 encima · 25 a pie   GURRUCHAGA                     Palermo
-   100.0   0 encima · 25 a pie   GUEMES                         Palermo
-   100.0   0 encima · 22 a pie   JUNCAL                         Palermo
-   100.0   0 encima · 25 a pie   BORGES, JORGE LUIS             Palermo
+   100.0  PASAJE   0 encima · 35 a pie   CIUDADELA                    Constitucion
+   100.0  PASAJE   0 encima · 35 a pie   GIORELLO, PABLO              Constitucion
+    95.7  PASAJE   0 encima · 24 a pie   KAVANAGH, CORINA             Retiro
+    91.8  PASAJE   0 encima · 25 a pie   BUERAS                       Liniers
+    86.8  PASAJE   0 encima · 24 a pie   CASCO                        Liniers
+    82.6  PASAJE   0 encima · 24 a pie   LEBENSOHN, MOISES            Nueva Pompeya
+    81.8  PASAJE   0 encima · 22 a pie   CARABELAS                    San Nicolas
+    81.1  PASAJE   0 encima · 23 a pie   LEBENSOHN, MOISES            Nueva Pompeya
+    80.0  PASAJE   0 encima · 17 a pie   MOM, POLICARPO               Belgrano
+    78.6  PASAJE   0 encima · 20 a pie   CASCO                        Liniers
+    76.2  PASAJE   0 encima · 15 a pie   MALHARRO, MARTIN A.          Saavedra
+    75.5  PASAJE   0 encima · 21 a pie   RICCIO, GUSTAVO              Flores
+    75.2  PASAJE   0 encima · 15 a pie   MALHARRO, MARTIN A.          Saavedra
+    75.0  CALLE    1 encima · 22 a pie   GODOY CRUZ                   Palermo
+    75.0  CALLE    0 encima · 22 a pie   BERUTI                       Palermo
+
+======================================================================
+Control: Av. 9 de Julio
+======================================================================
+70 cuadras, 13 de ellas sin colectivos atribuidos.
+Ésas eran las que puntuaban como calle tranquila. Ahora:
+
+   23 líneas a pie   sólo colectivos:  88.5   con tránsito:  38.5
+   22 líneas a pie   sólo colectivos:  84.6   con tránsito:  34.6
+   22 líneas a pie   sólo colectivos:  84.6   con tránsito:  34.6
+   21 líneas a pie   sólo colectivos:  80.8   con tránsito:  30.8
+   18 líneas a pie   sólo colectivos:  69.2   con tránsito:  19.2
 
 ======================================================================
 Sensibilidad al peso del ruido
@@ -59,9 +94,9 @@ Sensibilidad al peso del ruido
 Cuántas cuadras superan 60 puntos, y qué barrios encabezan:
 
    peso 0.0 ->  3050 cuadras sobre 60   | top 40: Retiro, Palermo
-   peso 0.5 ->  1597 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
-   peso 1.0 ->  1345 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
-   peso 1.5 ->  1217 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
-   peso 2.0 ->  1188 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 0.5 ->   940 cuadras sobre 60   | top 40: Retiro, San Nicolas, Constitucion
+   peso 1.0 ->   331 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
+   peso 1.5 ->   152 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
+   peso 2.0 ->    53 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
 
 Escrito output/ideal_blocks.csv

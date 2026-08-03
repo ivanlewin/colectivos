@@ -38,12 +38,13 @@ PRECISION = 5
 # puntos de una recta son redundantes.
 SIMPLIFY_DEG = 0.0001
 
-# Cuadras donde no vive nadie: quedan fuera del ranking de cuadra ideal.
-# Tiene que coincidir con la lista de scripts/10_ideal_blocks.py.
-NOT_RESIDENTIAL = {
-    "AUTOPISTA", "SUBIDA AUTOPISTA", "BAJADA AUTOPISTA", "ENLACE AUTOPISTA",
-    "SENDERO", "PUENTE", "TÚNEL",
-}
+# El ruido de tránsito y qué cuadras tienen domicilios salen de la misma tabla
+# que usa el índice. Se importan de allá para que no haya dos verdades.
+from importlib import import_module
+
+_ideal = import_module("10_ideal_blocks")
+traffic_noise = _ideal.traffic_noise
+NO_ADDRESSES = _ideal.NO_ADDRESSES
 
 
 def round_coords(geometry):
@@ -123,10 +124,11 @@ def build_blocks():
                 "b": props["barrio"] or "",
                 "t": props["tipo_c"],
                 "l": row["lines"],
-                # Si en esta cuadra vive alguien. Las autopistas, puentes,
-                # túneles y senderos de parque quedan fuera del ranking de
-                # cuadra ideal: no tiene sentido rankear dónde no se vive.
-                "r": props["tipo_c"] not in NOT_RESIDENTIAL,
+                # Para el índice de cuadra ideal: si la cuadra tiene
+                # domicilios, y cuánto ruido de tránsito tiene por su tipo de
+                # vía (proxy: velocidad máxima legal).
+                "r": props["tipo_c"] not in NO_ADDRESSES,
+                "tf": round(traffic_noise(props["tipo_c"]), 3),
             },
         })
     return {"type": "FeatureCollection", "features": features}

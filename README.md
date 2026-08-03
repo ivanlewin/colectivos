@@ -236,6 +236,29 @@ que vuela hasta cada una al hacer clic. La fórmula está implementada dos veces
 —Python para el registro, JavaScript para el mapa— y los dos rankings coinciden
 exactamente, lo que sirve de validación cruzada.
 
+### 2026-08-03 — El ruido no es sólo de colectivos
+
+Probando el índice apareció un resultado obviamente mal: **la 9 de Julio a la
+altura de Corrientes puntuaba 85 sobre 100.** Detrás había dos cosas.
+
+Un artefacto: el callejero parte la 9 de Julio en calzadas paralelas y, con
+140 m de ancho, los colectivos caen a más de la tolerancia de 15 m de la
+calzada de enfrente, así que 13 de sus 70 cuadras quedan sin colectivos
+atribuidos. Y un problema de fondo: *una avenida no es tranquila aunque no pase
+ningún colectivo por ella*.
+
+La solución no fue excluir avenidas —un corte binario— sino graduar el ruido de
+tránsito usando como proxy la **velocidad máxima legal** de cada tipo de vía,
+que sale del Código de Tránsito de la Ciudad: pasajes 20 km/h, calles 40,
+avenidas 60, autopistas 100. El ruido total es el máximo entre el de colectivos
+y el de tránsito: alcanza con que una de las dos cosas sea cierta.
+
+La 9 de Julio pasó de 85 a 35. Y el ranking cambió de raíz: ahora lo encabezan
+**pasajes** —Corina Kavanagh en Retiro, Carabelas en San Nicolás, Ciudadela en
+Constitución—, que es la respuesta correcta. El peso también discrimina mucho
+más: antes iba de 3.050 a 1.188 cuadras sobre 60, ahora de 3.050 a 48.
+→ [docs/06-ideal-block-index.md](docs/06-ideal-block-index.md)
+
 Próximos pasos, en orden:
 
 - [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así

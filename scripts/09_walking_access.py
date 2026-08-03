@@ -256,6 +256,7 @@ def main():
             "street": source.get("street", ""),
             "barrio": source.get("barrio", ""),
             "tipo_c": source.get("tipo_c", ""),
+            "red_jerarq": source.get("red_jerarq", ""),
             "n_lines_on": int(source.get("n_lines", 0)),
             "lines_on": source.get("lines", ""),
             "n_lines_walk": len(walkable),
