@@ -185,6 +185,32 @@
     background: var(--surface);
     border: 1px solid var(--border); border-radius: 4px;
   }
+  #weight-field[hidden] { display: none; }
+  #weight-field b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  #weight { width: 100%; margin: 2px 0 0; accent-color: var(--pick); }
+
+  /* ---- ranking de cuadras ---- */
+  #ranking[hidden] { display: none; }
+  #ranking {
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  #ranking h2 { margin: 0 0 7px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  #ranking-list { margin: 0; padding: 0; list-style: none; }
+  #ranking-list button {
+    display: flex; align-items: baseline; gap: 7px;
+    width: 100%; padding: 3px 5px; margin-left: -5px;
+    text-align: left;
+    background: none; border: 0; border-radius: 4px;
+    font-size: 12px; line-height: 1.35;
+  }
+  #ranking-list button:hover { background: var(--hover); }
+  #ranking-list .rank-score {
+    flex: none; min-width: 2.1em;
+    font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  #ranking-list .rank-where { color: var(--ink-2); }
+  #ranking-list .rank-barrio { color: var(--ink-muted); }
 
   footer { margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--ink-muted); }
   footer a { color: inherit; }
@@ -293,6 +319,7 @@
         <select id="layer-mode">
           <option value="on">Lo que pasa por la cuadra</option>
           <option value="walk">Lo que se toma a pie</option>
+          <option value="index">Índice de cuadra ideal</option>
         </select>
       </label>
       <label>
@@ -302,9 +329,18 @@
           <option value="buses">Colectivos por hora</option>
         </select>
       </label>
+      <label id="weight-field" hidden>
+        <span>Cuánto molesta el ruido: <b id="weight-value">1,0</b></span>
+        <input id="weight" type="range" min="0" max="2" step="0.1" value="1">
+      </label>
     </div>
 
     <div id="legend"></div>
+
+    <div id="ranking" hidden>
+      <h2>Las mejores cuadras</h2>
+      <ol id="ranking-list"></ol>
+    </div>
   </div>
 
   <footer>
@@ -333,34 +369,74 @@ const CLASS_STYLE = [
   { varName: '--n4', width: 2.6, swatch: 5 },
 ];
 
+// Constantes de normalización del índice de cuadra ideal, calculadas por
+// scripts/10_ideal_blocks.py. Si cambian los datos hay que actualizarlas.
+// El acceso se normaliza por su p99 y el ruido por su p95: ver ese script.
+const NORM = {
+  lines: { access: 26,    noise: 6     },
+  buses: { access: 860.8, noise: 111.2 },
+};
+
+// Cuánto pesa el ruido frente al acceso en el índice. Es una preferencia, no
+// un dato, así que se ajusta con el control de la página.
+let noiseWeight = 1.0;
+
+// El índice: acceso normalizado menos ruido normalizado, recortado en cero y
+// llevado a 0..100. Las cuadras donde no vive nadie devuelven -1 y caen en la
+// clase neutra, fuera del ranking.
+function indexExpression(metric) {
+  const norm = NORM[metric];
+  const access = metric === 'lines' ? 'nw' : 'bw';
+  const noise = metric === 'lines' ? 'n' : 'bh';
+  const normalized = (prop, by) => ['min', 1, ['/', ['get', prop], by]];
+  return ['case',
+    ['!', ['get', 'r']], -1,
+    ['*', 100, ['max', 0,
+      ['-', normalized(access, norm.access),
+            ['*', noiseWeight, normalized(noise, norm.noise)]]]],
+  ];
+}
+
 const VIEWS = {
   'on-lines': {
-    prop: 'n', none: 'ninguna',
+    value: () => ['get', 'n'], none: 'ninguna',
     breaks: [1, 3, 6, 11],
     labels: ['1 a 2', '3 a 5', '6 a 10', '11 o más'],
     caption: 'Líneas que pasan por la cuadra',
   },
   'on-buses': {
-    prop: 'bh', none: 'ninguno',
+    value: () => ['get', 'bh'], none: 'ninguno',
     breaks: [1, 25, 75, 150],
     labels: ['1 a 24', '25 a 74', '75 a 149', '150 o más'],
     caption: 'Colectivos por hora que pasan por la cuadra',
   },
   'walk-lines': {
-    prop: 'nw', none: 'ninguna',
+    value: () => ['get', 'nw'], none: 'ninguna',
     breaks: [1, 5, 10, 20],
     labels: ['1 a 4', '5 a 9', '10 a 19', '20 o más'],
     caption: 'Líneas que se toman caminando 400 m',
   },
   'walk-buses': {
-    prop: 'bw', none: 'ninguno',
+    value: () => ['get', 'bw'], none: 'ninguno',
     breaks: [1, 100, 200, 400],
     labels: ['1 a 99', '100 a 199', '200 a 399', '400 o más'],
     caption: 'Colectivos por hora a 400 m caminando',
   },
+  'index-lines': {
+    value: () => indexExpression('lines'), none: 'no califica',
+    breaks: [1, 25, 50, 75],
+    labels: ['baja', 'media', 'alta', 'muy alta'],
+    caption: 'Cuadra ideal: tranquila y bien conectada',
+  },
+  'index-buses': {
+    value: () => indexExpression('buses'), none: 'no califica',
+    breaks: [1, 25, 50, 75],
+    labels: ['baja', 'media', 'alta', 'muy alta'],
+    caption: 'Cuadra ideal: tranquila y bien conectada',
+  },
 };
 
-let layerMode = 'on';       // 'on' = pasan por la cuadra | 'walk' = a pie
+let layerMode = 'on';       // 'on' = pasa por la cuadra | 'walk' = a pie | 'index'
 let metricMode = 'lines';   // 'lines' | 'buses'
 const view = () => VIEWS[`${layerMode}-${metricMode}`];
 
@@ -399,7 +475,7 @@ const basemap = () => isDark()
 
 function colorExpression() {
   const v = view();
-  const expr = ['step', ['get', v.prop], css(CLASS_STYLE[0].varName)];
+  const expr = ['step', v.value(), css(CLASS_STYLE[0].varName)];
   v.breaks.forEach((min, i) => expr.push(min, css(CLASS_STYLE[i + 1].varName)));
   return expr;
 }
@@ -410,7 +486,7 @@ function colorExpression() {
 function widthExpression() {
   const v = view();
   const atZoom = factor => {
-    const expr = ['step', ['get', v.prop], CLASS_STYLE[0].width * factor];
+    const expr = ['step', v.value(), CLASS_STYLE[0].width * factor];
     v.breaks.forEach((min, i) => expr.push(min, CLASS_STYLE[i + 1].width * factor));
     return expr;
   };
@@ -449,8 +525,20 @@ map.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'b
 const selected = new Set();
 let allLines = [];
 
+// Copia liviana de las cuadras para poder rankearlas sin depender de qué
+// tiles tenga cargadas el mapa. Se llena en el load.
+let blockIndex = [];
+
 map.on('load', async () => {
-  map.addSource('blocks', { type: 'geojson', data: 'data/blocks.geojson' });
+  // Se descarga acá en vez de pasarle la URL a MapLibre porque el ranking
+  // necesita las 31.961 cuadras, no sólo las visibles.
+  const blocks = await fetch('data/blocks.geojson').then(r => r.json());
+  blockIndex = blocks.features.map(f => {
+    const c = f.geometry.coordinates;
+    return { ...f.properties, c: c[Math.floor(c.length / 2)] };
+  });
+
+  map.addSource('blocks', { type: 'geojson', data: blocks });
   map.addSource('routes', { type: 'geojson', data: 'data/routes.geojson' });
 
   map.addLayer({
@@ -521,6 +609,10 @@ map.on('load', async () => {
         : '<div class="pop-none">No pasa ningún colectivo</div>'}
       <div class="pop-lines pop-walk">A pie: <b>${p.nw}</b> ` +
         `${p.nw === 1 ? 'línea' : 'líneas'}, <b>${p.bw}</b> col/hora</div>
+      ${layerMode === 'index'
+        ? `<div class="pop-lines">Índice de cuadra ideal: ` +
+          `<b>${Math.round(blockScore(p, metricMode))}</b> sobre 100</div>`
+        : ''}
     `).addTo(map);
   });
   map.on('mouseenter', 'blocks-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -700,12 +792,74 @@ function buildLegend() {
 
 /* ------------------------------------------------------------- controles */
 
+const weightField = document.getElementById('weight-field');
+const weightInput = document.getElementById('weight');
+const weightValue = document.getElementById('weight-value');
+const ranking = document.getElementById('ranking');
+const rankingList = document.getElementById('ranking-list');
+
+// El mismo cálculo que la expresión del mapa, pero en JS, para poder ordenar
+// las cuadras. Si se cambia uno hay que cambiar el otro.
+function blockScore(block, metric) {
+  if (!block.r) return -1;
+  const norm = NORM[metric];
+  const access = metric === 'lines' ? block.nw : block.bw;
+  const noise = metric === 'lines' ? block.n : block.bh;
+  return Math.max(0,
+    Math.min(1, access / norm.access) - noiseWeight * Math.min(1, noise / norm.noise)) * 100;
+}
+
+function buildRanking() {
+  if (layerMode !== 'index' || !blockIndex.length) return;
+
+  const access = b => (metricMode === 'lines' ? b.nw : b.bw);
+
+  // Muchas cuadras empatan arriba en el puntaje máximo, así que se desempata
+  // por acceso crudo y se muestra una sola cuadra por calle y barrio: doce
+  // veces la misma calle no ayuda a nadie a elegir dónde vivir.
+  const seen = new Set();
+  const best = [];
+  const ordered = blockIndex
+    .map(b => ({ b, score: blockScore(b, metricMode) }))
+    .filter(x => x.score > 0)
+    .sort((x, y) => y.score - x.score || access(y.b) - access(x.b));
+
+  for (const entry of ordered) {
+    const key = `${entry.b.s}|${entry.b.b}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    best.push(entry);
+    if (best.length === 12) break;
+  }
+
+  rankingList.innerHTML = '';
+  for (const { b, score } of best) {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.innerHTML =
+      `<span class="rank-score">${Math.round(score)}</span>` +
+      `<span><span class="rank-where">${b.s}${b.a ? ' ' + b.a : ''}</span> ` +
+      `<span class="rank-barrio">${b.b || '—'}</span></span>`;
+    button.addEventListener('click', () => {
+      map.flyTo({ center: b.c, zoom: 16 });
+    });
+    item.appendChild(button);
+    rankingList.appendChild(item);
+  }
+}
+
 function applyView() {
   if (map.getLayer('blocks')) {
     map.setPaintProperty('blocks', 'line-color', colorExpression());
     map.setPaintProperty('blocks', 'line-width', widthExpression());
   }
   buildLegend();
+
+  const isIndex = layerMode === 'index';
+  weightField.hidden = !isIndex;
+  ranking.hidden = !isIndex;
+  if (isIndex) buildRanking();
 }
 
 for (const [id, apply] of [
@@ -717,6 +871,12 @@ for (const [id, apply] of [
     applyView();
   });
 }
+
+weightInput.addEventListener('input', () => {
+  noiseWeight = Number(weightInput.value);
+  weightValue.textContent = noiseWeight.toFixed(1).replace('.', ',');
+  applyView();
+});
 
 /* ------------------------------------------------------- colapsar el panel */
 

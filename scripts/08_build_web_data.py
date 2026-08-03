@@ -38,6 +38,13 @@ PRECISION = 5
 # puntos de una recta son redundantes.
 SIMPLIFY_DEG = 0.0001
 
+# Cuadras donde no vive nadie: quedan fuera del ranking de cuadra ideal.
+# Tiene que coincidir con la lista de scripts/10_ideal_blocks.py.
+NOT_RESIDENTIAL = {
+    "AUTOPISTA", "SUBIDA AUTOPISTA", "BAJADA AUTOPISTA", "ENLACE AUTOPISTA",
+    "SENDERO", "PUENTE", "TÚNEL",
+}
+
 
 def round_coords(geometry):
     """Recorta la precisión de las coordenadas de un dict GeoJSON."""
@@ -116,6 +123,10 @@ def build_blocks():
                 "b": props["barrio"] or "",
                 "t": props["tipo_c"],
                 "l": row["lines"],
+                # Si en esta cuadra vive alguien. Las autopistas, puentes,
+                # túneles y senderos de parque quedan fuera del ranking de
+                # cuadra ideal: no tiene sentido rankear dónde no se vive.
+                "r": props["tipo_c"] not in NOT_RESIDENTIAL,
             },
         })
     return {"type": "FeatureCollection", "features": features}

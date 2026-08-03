@@ -107,9 +107,11 @@ también corre solo:
 | [05_geometry_quality.py](scripts/05_geometry_quality.py) | ¿Sirve la geometría para atribuir colectivos a calles? Compara las tres fuentes. |
 | [06_gtfs_freshness.py](scripts/06_gtfs_freshness.py) | ¿Cuánto sirve todavía el GTFS de 2019? Mide la cobertura de cada recorrido vigente. |
 | [07_attribute_lines.py](scripts/07_attribute_lines.py) | **Paso A**: qué líneas pasan por cada una de las 31.961 cuadras. |
-| [08_build_web_data.py](scripts/08_build_web_data.py) | Prepara los GeoJSON que consume la página. |
+| [09_walking_access.py](scripts/09_walking_access.py) | **Paso B**: a cuántas líneas se llega caminando 400 m por la red de calles. |
+| [10_ideal_blocks.py](scripts/10_ideal_blocks.py) | **Paso C**: el índice de cuadra ideal y sus constantes de normalización. |
+| [08_build_web_data.py](scripts/08_build_web_data.py) | Prepara los GeoJSON que consume la página. Va último. |
 | [serve.sh](scripts/serve.sh) | Levanta la visualización en localhost. |
-| [common.py](scripts/common.py) | Rutas, carga del dataset y definición del CRS. |
+| [common.py](scripts/common.py) | Rutas, carga del dataset, CRS y frecuencias del GTFS. |
 
 ---
 
@@ -209,16 +211,37 @@ La página ahora tiene dos selectores —qué mirar (lo que pasa por la cuadra /
 que se toma a pie) y en qué unidad— con su propia escala de cortes cada
 combinación. El acceso a pie quedó así incorporado al mapa.
 
+### 2026-08-03 — Paso C: el índice de cuadra ideal
+
+Se cerró la pregunta que originó el proyecto. El índice combina acceso y ruido:
+`max(0, acceso − peso × ruido) × 100`, cada término normalizado y recortado.
+
+**El peso es un control, no un número**: cuánto molesta un colectivo por la
+ventana es una preferencia, no un dato, así que se mueve con un slider entre 0
+y 2 y el mapa se repinta en vivo. Con peso 0 quedan 3.050 cuadras sobre 60
+puntos; con peso 2, 1.188.
+
+Los dos lados se normalizan con percentiles distintos y por razones distintas:
+el acceso con su **p99** porque tiene que ordenar el ranking —con el p95
+saturaban 1.753 cuadras en el puntaje máximo—, y el ruido con su **p95** porque
+ahí sólo hace falta penalizar. → [docs/06-ideal-block-index.md](docs/06-ideal-block-index.md)
+
+Las mejores cuadras son calles laterales pegadas a un centro de trasbordo:
+Ciudadela, Tacuarí y O'Brien en Constitución, Marcelo T. de Alvear en Retiro,
+Finochietto en Barracas. Medido en colectivos por hora entra Palermo —Borges,
+Güemes, Gurruchaga— que tiene el corredor de Santa Fe a una cuadra.
+
+La página suma el slider y una lista de las 12 mejores cuadras, una por calle,
+que vuela hasta cada una al hacer clic. La fórmula está implementada dos veces
+—Python para el registro, JavaScript para el mapa— y los dos rankings coinciden
+exactamente, lo que sirve de validación cruzada.
+
 Próximos pasos, en orden:
 
-- [ ] Paso C: índice de cuadra ideal, combinando ruido y acceso con pesos
-      ajustables en la página.
 - [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
       que las cuadras pegadas a la General Paz y al Riachuelo quedan
       subestimadas.
 - [ ] Permitir cambiar la hora de referencia: hoy son las 08:00 de un día hábil,
       fijas en una constante.
-- [ ] Excluir autopistas del índice: van elevadas sobre calles de superficie y
-      el análisis en dos dimensiones no puede separarlas.
-- [ ] Pesar el ruido por colectivos/hora usando `frequencies.txt`, no por
-      cantidad de líneas.
+- [ ] Agregar los barrios como capa agregada: 49 polígonos comunican mucho
+      mejor que 31.961 cuadras.

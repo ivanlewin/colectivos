@@ -1,0 +1,67 @@
+
+======================================================================
+Constantes de normalización
+======================================================================
+Son las que usa la página. Si cambian los datos, hay que
+actualizarlas también en web/index.html (constante NORM).
+
+                         acceso (p99)   ruido (p95)   saturan arriba
+líneas                           26.0           6.0   369
+colectivos por hora             860.8         111.2   320
+
+Cuadras en el ranking: 31104 de 31961 (857 descartadas por no ser residenciales)
+
+======================================================================
+Las 15 mejores cuadras, medido en líneas
+======================================================================
+(peso del ruido = 1.0)
+
+   100.0   0 encima · 26 a pie   BORGES, JORGE LUIS             Palermo
+   100.0   0 encima · 26 a pie   COMBATE DE COSTA BRAVA         Retiro
+   100.0   0 encima · 27 a pie   RAMOS MEJIA, JOSE MARIA, DR. A Retiro
+   100.0   0 encima · 27 a pie   PADRE CARLOS MUGICA            Retiro
+   100.0   0 encima · 27 a pie   BASAVILBASO                    Retiro
+   100.0   0 encima · 27 a pie   BASAVILBASO                    Retiro
+   100.0   0 encima · 29 a pie   CRUCERO GRAL. BELGRANO         Retiro
+   100.0   0 encima · 27 a pie   RECONQUISTA                    Retiro
+   100.0   0 encima · 27 a pie   ALVEAR, MARCELO T. DE          Retiro
+   100.0   0 encima · 27 a pie   RECONQUISTA                    Retiro
+   100.0   0 encima · 30 a pie   ALVEAR, MARCELO T. DE          Retiro
+   100.0   0 encima · 27 a pie   SAN MARTIN                     Retiro
+   100.0   0 encima · 26 a pie   BUTTY, ENRIQUE, ING.           Retiro
+   100.0   0 encima · 26 a pie   RECONQUISTA                    Retiro
+   100.0   0 encima · 27 a pie   SAN MARTIN                     Retiro
+
+======================================================================
+Las 15 mejores cuadras, medido en colectivos por hora
+======================================================================
+(peso del ruido = 1.0)
+
+   100.0   0 encima · 22 a pie   BERUTI                         Palermo
+   100.0   0 encima · 23 a pie   BERUTI                         Palermo
+   100.0   0 encima · 21 a pie   BERUTI                         Palermo
+   100.0   0 encima · 23 a pie   GUEMES                         Palermo
+   100.0   0 encima · 23 a pie   DARREGUEYRA                    Palermo
+   100.0   0 encima · 21 a pie   GUEMES                         Palermo
+   100.0   0 encima · 21 a pie   CHARCAS                        Palermo
+   100.0   0 encima · 24 a pie   GUEMES                         Palermo
+   100.0   0 encima · 26 a pie   BORGES, JORGE LUIS             Palermo
+   100.0   0 encima · 25 a pie   GUEMES                         Palermo
+   100.0   0 encima · 23 a pie   REPUBLICA ARABE SIRIA          Palermo
+   100.0   0 encima · 25 a pie   GURRUCHAGA                     Palermo
+   100.0   0 encima · 25 a pie   GUEMES                         Palermo
+   100.0   0 encima · 22 a pie   JUNCAL                         Palermo
+   100.0   0 encima · 25 a pie   BORGES, JORGE LUIS             Palermo
+
+======================================================================
+Sensibilidad al peso del ruido
+======================================================================
+Cuántas cuadras superan 60 puntos, y qué barrios encabezan:
+
+   peso 0.0 ->  3050 cuadras sobre 60   | top 40: Retiro, Palermo
+   peso 0.5 ->  1597 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 1.0 ->  1345 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 1.5 ->  1217 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 2.0 ->  1188 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+
+Escrito output/ideal_blocks.csv
