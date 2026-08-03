@@ -1,0 +1,70 @@
+
+======================================================================
+Acceso caminando
+======================================================================
+Líneas del padrón con paradas : 129
+Paradas distintas             : 19610
+
+Grafo peatonal: 31961 cuadras, 18148 esquinas
+   esquinas sin conexión: 153
+   grado más común      : [(4, 9990), (3, 6404), (2, 720)]
+
+Paradas enganchadas al callejero: 8399
+   descartadas por estar lejos   : 34064 (paradas del conurbano)
+   25/129 líneas procesadas
+   50/129 líneas procesadas
+   75/129 líneas procesadas
+   100/129 líneas procesadas
+   125/129 líneas procesadas
+
+======================================================================
+Resultado
+======================================================================
+Líneas a 400 m caminando, por cuadra:
+   mediana : 6
+   máximo  : 37
+   cuadras sin ninguna línea a pie: 1402 (4.4%)
+
+Promedio de líneas a pie por barrio — los 8 mejores y los 8 peores:
+    20.6  San Nicolas
+    19.5  Constitucion
+    18.0  Monserrat
+    16.7  Balvanera
+    15.8  San Telmo
+    12.2  San Cristobal
+    11.8  Almagro
+    11.0  Recoleta
+   ...
+     5.1  Villa Urquiza
+     5.1  Paternal
+     4.9  Agronomia
+     4.9  Villa Riachuelo
+     4.9  Mataderos
+     4.8  Villa Lugano
+     4.7  Villa Pueyrredon
+     2.1  Villa Soldati
+
+======================================================================
+Adelanto del Paso C: cuadras tranquilas y bien conectadas
+======================================================================
+Cuadras sin ningún colectivo encima, ordenadas por líneas a pie:
+
+    36 líneas a pie · CIUDADELA                      Constitucion
+    35 líneas a pie · CIUDADELA                      Constitucion
+    32 líneas a pie · TACUARI                        Constitucion
+    32 líneas a pie · O'BRIEN                        Constitucion
+    31 líneas a pie · BRASIL                         Constitucion
+    30 líneas a pie · ALVEAR, MARCELO T. DE          Retiro
+    30 líneas a pie · FINOCHIETTO ENRIQUE DR.        Barracas
+    29 líneas a pie · CRUCERO GRAL. BELGRANO         Retiro
+    29 líneas a pie · RECONQUISTA                    San Nicolas
+    29 líneas a pie · CASTELLI                       Balvanera
+    29 líneas a pie · MISIONES                       Balvanera
+    29 líneas a pie · TACUARI                        Constitucion
+    29 líneas a pie · PIEDRAS                        
+    29 líneas a pie · SAN JOSE                       Constitucion
+    29 líneas a pie · DELLA PAOLERA, CARLOS M.       Retiro
+
+Hay 17016 cuadras sin colectivo encima; 429 tienen 20 o más líneas a pie.
+
+Escrito output/blocks_access.csv

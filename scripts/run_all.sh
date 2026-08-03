@@ -43,6 +43,8 @@ if "$PY" -c "import pyproj" 2>/dev/null; then
   run_step 06_gtfs_freshness.py
   # El paso 07 tarda un par de minutos: cruza 31.961 cuadras con las trazas.
   run_step 07_attribute_lines.py
+  # El 09 va antes del 08 porque la página muestra las dos métricas.
+  run_step 09_walking_access.py
   run_step 08_build_web_data.py
 else
   echo "==> 03_crs.py y 04_coverage.py salteados: falta pyproj"

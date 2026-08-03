@@ -169,10 +169,32 @@ cualquiera de las 129 líneas. Al elegir una, dibuja las cuadras atribuidas como
 banda ancha y encima la traza del GTFS, así el control de calidad se puede hacer
 a ojo sobre el mapa.
 
+### 2026-08-03 — Paso B: a cuántas líneas se llega caminando
+
+Se armó un grafo peatonal con el callejero —31.961 cuadras, 18.148 esquinas— y
+se corrió un Dijkstra multi-origen por línea desde sus paradas, cortando a
+400 m. La distancia va **sobre la red de calles**, no en línea recta: medida en
+recta, un radio de 400 m cruza las vías del Sarmiento, el Riachuelo o la General
+Paz y cuenta paradas a las que no se llega.
+
+Resultado: **mediana de 6 líneas a pie** por cuadra, máximo 37, y 1.402 cuadras
+(4,4 %) sin ninguna. Por barrio va de San Nicolás (20,6) a Villa Soldati (2,1),
+que es el orden que se conoce de la Ciudad. El grafo se validó por su
+distribución de grados: 9.990 esquinas de grado 4 y 6.404 de grado 3, la firma
+de un damero. → [docs/04-walking-access.md](docs/04-walking-access.md)
+
+Cruzando las dos métricas ya asoma el objetivo del proyecto: de las 17.016
+cuadras sin colectivo encima, **429 tienen 20 o más líneas a pie** — Ciudadela y
+Tacuarí en Constitución, Marcelo T. de Alvear en Retiro, Finochietto en
+Barracas.
+
 Próximos pasos, en orden:
 
-- [ ] Paso B: grafo peatonal sobre el callejero y acceso a paradas a 400 m.
 - [ ] Paso C: índice de cuadra ideal, con pesos ajustables en la página.
+- [ ] Llevar el acceso a pie al mapa como capa conmutable.
+- [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
+      que las cuadras pegadas a la General Paz y al Riachuelo quedan
+      subestimadas.
 - [ ] Excluir autopistas del índice: van elevadas sobre calles de superficie y
       el análisis en dos dimensiones no puede separarlas.
 - [ ] Pesar el ruido por colectivos/hora usando `frequencies.txt`, no por
