@@ -69,7 +69,9 @@
   #panel {
     position: absolute;
     top: 12px; left: 12px;
-    width: 300px;
+    /* Suficiente para que el título entre en una línea junto a los dos
+       botones de la cabecera. */
+    width: 330px;
     max-height: calc(100% - 24px);
     overflow-y: auto;
     z-index: 1;
@@ -79,19 +81,29 @@
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
   }
-  .panel-head { display: flex; align-items: flex-start; gap: 10px; }
+  .panel-head { display: flex; align-items: flex-start; gap: 6px; }
   h1 { flex: 1; margin: 0 0 2px; font-size: 15px; font-weight: 600; }
   .sub { margin: 0 0 14px; color: var(--ink-2); font-size: 12px; }
 
-  #theme-btn {
+  #theme-btn, #collapse-btn {
     flex: none;
     display: grid; place-items: center;
-    width: 28px; height: 28px; margin: -3px -4px 0 0;
+    width: 28px; height: 28px; margin-top: -3px;
     color: var(--ink-2);
     background: none; border: 1px solid transparent; border-radius: 5px;
   }
-  #theme-btn:hover { color: var(--ink); background: var(--hover); }
-  #theme-btn:focus-visible { outline: 2px solid var(--pick); outline-offset: 1px; }
+  #collapse-btn { margin-right: -4px; }
+  #theme-btn:hover, #collapse-btn:hover { color: var(--ink); background: var(--hover); }
+  #theme-btn:focus-visible, #collapse-btn:focus-visible {
+    outline: 2px solid var(--pick); outline-offset: 1px;
+  }
+  #collapse-btn svg { transition: transform 0.15s ease; }
+
+  /* Colapsado: queda sólo la barra del título, y el chevron apunta para abajo
+     para indicar que hay algo por desplegar. */
+  #panel[data-collapsed="true"] #panel-body { display: none; }
+  #panel[data-collapsed="true"] .panel-head { margin-bottom: -2px; }
+  #panel:not([data-collapsed="true"]) #collapse-btn svg { transform: rotate(180deg); }
 
   .field-head {
     display: flex; align-items: baseline; justify-content: space-between;
@@ -150,6 +162,8 @@
     margin: 8px 0 0; min-height: 1.45em;
     font-size: 12px; color: var(--ink-2);
   }
+  /* Sin selección no reserva espacio: en 375 px de alto ese hueco se nota. */
+  #pick-info:empty { display: none; }
   #pick-info b { color: var(--ink); font-weight: 600; }
 
   .section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
@@ -193,6 +207,32 @@
     margin-top: 5px; padding-top: 5px;
     border-top: 1px solid var(--border);
   }
+
+  /* ---- pantallas angostas ---- */
+  @media (max-width: 640px) {
+    /* El panel pasa a ocupar el ancho completo y arranca colapsado, así el
+       mapa —que es el contenido— se ve apenas entra. */
+    #panel {
+      left: 8px; right: 8px; top: 8px;
+      width: auto;
+      max-height: calc(100% - 16px);
+      padding: 11px 13px 13px;
+    }
+    #panel[data-collapsed="true"] { padding-bottom: 11px; }
+
+    /* Con el panel a lo ancho, los botones de zoom quedarían tapados. En
+       touch el zoom se hace con los dedos, así que sobran. */
+    .maplibregl-ctrl-top-right { display: none; }
+
+    /* Blancos más chicos: en 375 px cada línea cuenta. */
+    .sub { margin-bottom: 11px; }
+    .section { margin-top: 14px; padding-top: 11px; }
+    footer { margin-top: 12px; }
+
+    /* Área de toque cómoda en los controles. */
+    .controls select, #picker-btn { padding-top: 7px; padding-bottom: 7px; }
+    #picker-list { max-height: 40vh; }
+  }
 </style>
 <script>
   // Se aplica antes de pintar nada: si no, al recargar con un tema elegido a
@@ -211,7 +251,15 @@
   <div class="panel-head">
     <h1>Colectivos, cuadra por cuadra</h1>
     <button id="theme-btn" type="button"></button>
+    <button id="collapse-btn" type="button" aria-controls="panel-body" aria-expanded="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 9l7 7 7-7"/>
+      </svg>
+    </button>
   </div>
+
+  <div id="panel-body">
   <p class="sub">31.961 cuadras de la Ciudad: qué colectivos pasan por cada una
     y a cuáles se llega caminando.</p>
 
@@ -265,6 +313,7 @@
     (2019). Callejero y padrón de líneas: Gobierno de la Ciudad, 2026.
     Hacé clic en cualquier cuadra para ver el detalle.
   </footer>
+  </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -372,8 +421,10 @@ function widthExpression() {
 const map = new maplibregl.Map({
   container: 'map',
   center: [-58.442, -34.615],
-  zoom: 11.4,
-  minZoom: 10,
+  // El zoom inicial se achica en pantallas angostas para que la Ciudad entre
+  // entera. Si la URL trae hash, MapLibre lo usa y esto se ignora.
+  zoom: window.innerWidth < 640 ? 10.2 : 11.4,
+  minZoom: 9.5,
   maxZoom: 18,
   // Guarda la posición en la URL, así se puede compartir una vista concreta.
   hash: true,
@@ -666,6 +717,36 @@ for (const [id, apply] of [
     applyView();
   });
 }
+
+/* ------------------------------------------------------- colapsar el panel */
+
+const panel = document.getElementById('panel');
+const collapseBtn = document.getElementById('collapse-btn');
+
+// En pantallas angostas el panel tapa el mapa entero, así que arranca cerrado.
+// En pantallas grandes entra completo y conviene verlo de una.
+const narrow = window.matchMedia('(max-width: 640px)');
+
+function setCollapsed(value) {
+  panel.dataset.collapsed = String(value);
+  collapseBtn.setAttribute('aria-expanded', String(!value));
+  collapseBtn.setAttribute('aria-label', value ? 'Mostrar los controles' : 'Ocultar los controles');
+  collapseBtn.title = value ? 'Mostrar los controles' : 'Ocultar los controles';
+}
+
+collapseBtn.addEventListener('click', () => {
+  setCollapsed(panel.dataset.collapsed !== 'true');
+});
+
+// Al girar el teléfono o cambiar de tamaño, se recalcula el estado por defecto
+// sólo si el usuario todavía no tocó el botón.
+let collapseTouched = false;
+collapseBtn.addEventListener('click', () => { collapseTouched = true; }, { once: true });
+narrow.addEventListener('change', () => {
+  if (!collapseTouched) setCollapsed(narrow.matches);
+});
+
+setCollapsed(narrow.matches);
 
 /* -------------------------------------------------------------- tema (UI) */
 
