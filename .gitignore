@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
+.DS_Store
 
 # Fuentes pesadas: se bajan con scripts/00_download.sh, no se versionan.
 data/gtfs.zip

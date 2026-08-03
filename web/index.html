@@ -23,8 +23,13 @@
     /* Líneas seleccionadas. Separado de toda la rampa (ΔE CVD 24,7). */
     --pick: #eb6834;
   }
+  /* Los valores oscuros van declarados dos veces a propósito: el media query
+     cubre la preferencia del sistema, y el scope [data-theme] cubre la
+     elección explícita del botón, que tiene que poder ganarle en los dos
+     sentidos. El :not() deja que un "claro" explícito le gane al sistema
+     oscuro; el :where() mantiene el media query por debajo en especificidad. */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:where(:not([data-theme="light"])) {
       color-scheme: dark;
       --surface:   #1a1a19;
       --plane:     #0d0d0d;
@@ -37,6 +42,19 @@
       --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
       --pick: #d95926;
     }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface:   #1a1a19;
+    --plane:     #0d0d0d;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --ink-muted: #898781;
+    --border:    rgba(255, 255, 255, 0.10);
+    --hover:     rgba(255, 255, 255, 0.07);
+    --n0: #52514e;
+    --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
+    --pick: #d95926;
   }
 
   * { box-sizing: border-box; }
@@ -61,8 +79,19 @@
     border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
   }
-  h1 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+  .panel-head { display: flex; align-items: flex-start; gap: 10px; }
+  h1 { flex: 1; margin: 0 0 2px; font-size: 15px; font-weight: 600; }
   .sub { margin: 0 0 14px; color: var(--ink-2); font-size: 12px; }
+
+  #theme-btn {
+    flex: none;
+    display: grid; place-items: center;
+    width: 28px; height: 28px; margin: -3px -4px 0 0;
+    color: var(--ink-2);
+    background: none; border: 1px solid transparent; border-radius: 5px;
+  }
+  #theme-btn:hover { color: var(--ink); background: var(--hover); }
+  #theme-btn:focus-visible { outline: 2px solid var(--pick); outline-offset: 1px; }
 
   .field-head {
     display: flex; align-items: baseline; justify-content: space-between;
@@ -149,13 +178,24 @@
   .pop-lines { color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
   .pop-none { color: var(--ink-muted); font-size: 12px; font-style: italic; }
 </style>
+<script>
+  // Se aplica antes de pintar nada: si no, al recargar con un tema elegido a
+  // mano se ve un parpadeo del tema del sistema.
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  } catch (e) { /* localStorage bloqueado: queda el tema del sistema */ }
+</script>
 </head>
 <body>
 
 <div id="map"></div>
 
 <div id="panel">
-  <h1>Colectivos, cuadra por cuadra</h1>
+  <div class="panel-head">
+    <h1>Colectivos, cuadra por cuadra</h1>
+    <button id="theme-btn" type="button"></button>
+  </div>
   <p class="sub">31.961 cuadras de la Ciudad, con las líneas que pasan por cada una.</p>
 
   <div class="field-head">
@@ -205,9 +245,35 @@ const BREAKS = [
 ];
 
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* -------------------------------------------------------------------- tema */
+
+// El botón cicla en este orden. Arranca en "system" mientras no haya nada
+// guardado, así respeta la preferencia del sistema sin que nadie la elija.
+const THEME_MODES = ['light', 'dark', 'system'];
+const THEME_LABEL = {
+  light:  'Tema claro',
+  dark:   'Tema oscuro',
+  system: 'Según el sistema',
+};
+const THEME_ICON = {
+  light: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4' +
+         'M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
+  dark:  '<path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.7 6.7 0 0 0 11.1 11.1z"/>',
+  system: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 17v4"/>',
+};
+
 const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
 
-const basemap = () => darkMode.matches
+let themeMode = 'system';
+try {
+  const saved = localStorage.getItem('theme');
+  if (THEME_MODES.includes(saved)) themeMode = saved;
+} catch (e) { /* localStorage bloqueado */ }
+
+const isDark = () => themeMode === 'dark' || (themeMode === 'system' && darkMode.matches);
+
+const basemap = () => isDark()
   ? 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
   : 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
@@ -501,8 +567,24 @@ function buildLegend() {
   for (const b of BREAKS) legend.appendChild(row(b));
 }
 
-// El mapa base y la rampa siguen el tema del sistema.
-darkMode.addEventListener('change', () => {
+/* -------------------------------------------------------------- tema (UI) */
+
+const themeBtn = document.getElementById('theme-btn');
+
+function renderThemeButton() {
+  const label = THEME_LABEL[themeMode];
+  themeBtn.innerHTML =
+    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
+    `${THEME_ICON[themeMode]}</svg>`;
+  themeBtn.title = `${label} — clic para cambiar`;
+  themeBtn.setAttribute('aria-label', label);
+}
+
+// El mapa base y los colores no salen del CSS: hay que reaplicarlos a mano
+// cada vez que cambia el tema, porque MapLibre pinta sobre un canvas.
+function repaintForTheme() {
+  if (!map.getSource('base')) return;
   map.getSource('base').setTiles([basemap()]);
   if (map.getLayer('blocks')) {
     map.setPaintProperty('blocks', 'line-color', colorExpression());
@@ -510,7 +592,28 @@ darkMode.addEventListener('change', () => {
     map.setPaintProperty('routes-picked', 'line-color', css('--pick'));
     buildLegend();
   }
+}
+
+function setTheme(mode) {
+  themeMode = mode;
+  if (mode === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = mode;
+  try { localStorage.setItem('theme', mode); } catch (e) { /* bloqueado */ }
+  renderThemeButton();
+  repaintForTheme();
+}
+
+themeBtn.addEventListener('click', () => {
+  const next = (THEME_MODES.indexOf(themeMode) + 1) % THEME_MODES.length;
+  setTheme(THEME_MODES[next]);
 });
+
+// Si el tema quedó atado al sistema, hay que seguirlo cuando cambia.
+darkMode.addEventListener('change', () => {
+  if (themeMode === 'system') repaintForTheme();
+});
+
+renderThemeButton();
 </script>
 </body>
 </html>
