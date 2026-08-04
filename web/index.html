@@ -370,12 +370,13 @@ const CLASS_STYLE = [
   { varName: '--n4', width: 2.6, swatch: 5 },
 ];
 
-// Constantes de normalización del índice de cuadra ideal, calculadas por
-// scripts/10_ideal_blocks.py. Si cambian los datos hay que actualizarlas.
-// El acceso se normaliza por su p99 y el ruido por su p95: ver ese script.
-const NORM = {
-  lines: { access: 26,    noise: 6     },
-  buses: { access: 860.8, noise: 111.2 },
+// Constantes de normalización del índice de cuadra ideal: el acceso por su p99
+// y el ruido de colectivos por su p95. Las calcula scripts/10_ideal_blocks.py
+// y llegan en data/norm.json, así que no hay que mantenerlas acá a mano. Estos
+// valores son sólo el respaldo por si el archivo no está.
+let NORM = {
+  lines: { access: 28,    noise: 6     },
+  buses: { access: 837.6, noise: 113.7 },
 };
 
 // Cuánto pesa el ruido frente al acceso en el índice. Es una preferencia, no
@@ -539,6 +540,13 @@ let allLines = [];
 let blockIndex = [];
 
 map.on('load', async () => {
+  // Las constantes del índice las calcula el análisis; si el archivo no está,
+  // quedan las de respaldo declaradas arriba.
+  await fetch('data/norm.json')
+    .then(r => r.ok ? r.json() : null)
+    .then(loaded => { if (loaded) NORM = loaded; })
+    .catch(() => {});
+
   // Se descarga acá en vez de pasarle la URL a MapLibre porque el ranking
   // necesita las 31.961 cuadras, no sólo las visibles.
   const blocks = await fetch('data/blocks.geojson').then(r => r.json());

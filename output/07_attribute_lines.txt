@@ -2,11 +2,11 @@
 ======================================================================
 Atribución de líneas a cuadras
 ======================================================================
-Padrón EPOK vigente        : 132 líneas
-Trazas (ramales)           : 1091
-Segmentos de traza GTFS    : 409090
-Líneas con traza           : 129
-Colectivos/hora en la red  : 4788 (día hábil, 08:00)
+Padrón de líneas de CABA   : 137 líneas
+Trazas (ramales)           : 1109
+Segmentos de traza GTFS    : 412630
+Líneas con traza           : 134
+Colectivos/hora en la red  : 4903 (día hábil, 08:00)
 Cuadras del callejero      : 31961
 Cuadras con parada vigente : 4257 (137 líneas distintas)
 
@@ -23,15 +23,10 @@ ignorando 15 m en cada esquina, mínimo 60% de muestras.
 ======================================================================
 Corrección con las fuentes vigentes de 2026
 ======================================================================
-Líneas con menos del 70% de sus paradas cubiertas por el GTFS 2019: 11 de 137
+Líneas con menos del 70% de sus paradas cubiertas por el GTFS 2019: 6 de 137
 A ésas se les incorpora el recorrido reconstruido; al resto no.
 
-   línea  99: el GTFS cubre   0% de sus  87 paradas
    línea 164: el GTFS cubre   0% de sus  35 paradas
-   línea   5: el GTFS cubre   0% de sus   3 paradas
-   línea   6: el GTFS cubre   0% de sus  86 paradas
-   línea 175: el GTFS cubre   0% de sus   1 paradas
-   línea 112: el GTFS cubre   0% de sus   1 paradas
    línea 145: el GTFS cubre   0% de sus 152 paradas
    línea 119: el GTFS cubre   0% de sus  53 paradas
    línea   8: el GTFS cubre  48% de sus 192 paradas
@@ -41,49 +36,49 @@ A ésas se les incorpora el recorrido reconstruido; al resto no.
 ======================================================================
 Resultado
 ======================================================================
-Cuadras sin ninguna línea  : 18728 (58.6%)
-Cuadras con al menos una   : 13233 (41.4%)
+Cuadras sin ninguna línea  : 18669 (58.4%)
+Cuadras con al menos una   : 13292 (41.6%)
 Máximo de líneas en una cuadra: 29
 
 Distribución:
-    0 líneas:  18728 cuadras
-    1 líneas:   4831 cuadras
-    2 líneas:   2705 cuadras
+    0 líneas:  18669 cuadras
+    1 líneas:   4745 cuadras
+    2 líneas:   2726 cuadras
     3 líneas:   1764 cuadras
-    4 líneas:   1260 cuadras
-    5 líneas:    745 cuadras
-    6 líneas:    470 cuadras
-    7 líneas:    408 cuadras
-    8 líneas:    228 cuadras
-    9 líneas:    192 cuadras
-   10 líneas:    141 cuadras
-   11 líneas:     96 cuadras
+    4 líneas:   1276 cuadras
+    5 líneas:    785 cuadras
+    6 líneas:    494 cuadras
+    7 líneas:    416 cuadras
+    8 líneas:    240 cuadras
+    9 líneas:    181 cuadras
+   10 líneas:    150 cuadras
+   11 líneas:    110 cuadras
 
 Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
    mediana : 30.0
-   p90     : 122.9
+   p90     : 125.7
    máximo  : 892.2
 
 Control de calidad — promedio por jerarquía de vía:
                                          líneas  col/hora
-   VÍA DISTRIBUIDORA PRINCIPAL             4.78     96.91  (3956 cuadras)
-   VÍA TRONCAL                             3.29     48.23  (995 cuadras)
-   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.64     26.25  (3965 cuadras)
-   VÍA LOCAL                               0.59      8.23  (23044 cuadras)
+   VÍA DISTRIBUIDORA PRINCIPAL             4.90     99.44  (3956 cuadras)
+   VÍA TRONCAL                             3.29     48.25  (995 cuadras)
+   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.69     27.27  (3965 cuadras)
+   VÍA LOCAL                               0.61      8.48  (23044 cuadras)
    None                                    0.00      0.00  (1 cuadras)
 Las troncales tienen que estar arriba y las vías locales abajo.
 
 Las 10 cuadras con más líneas:
+   29 líneas · 403.5 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   29 líneas · 403.5 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
    29 líneas · 534.5 col/h  IRIGOYEN, BERNARDO DE        Constitucion
-   28 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   27 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   27 líneas · 370.6 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   27 líneas · 253.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   27 líneas · 401.9 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   27 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   26 líneas · 431.7 col/h  SAN MARTIN                   Retiro
-   26 líneas · 418.5 col/h  HORNOS, GRAL.                Constitucion
-   26 líneas · 402.9 col/h  ANTARTIDA ARGENTINA AV.      Retiro
+   29 líneas · 403.5 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   28 líneas · 398.5 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   28 líneas · 466.7 col/h  SAN MARTIN                   Retiro
+   28 líneas · 437.9 col/h  ANTARTIDA ARGENTINA AV.      Retiro
+   28 líneas · 436.9 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   28 líneas · 466.7 col/h  SAN MARTIN                   Retiro
+   28 líneas · 403.5 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
 
 Las 10 cuadras con más colectivos por hora:
    22 líneas · 892.2 col/h  SANTA FE AV.                 Palermo
@@ -92,9 +87,9 @@ Las 10 cuadras con más colectivos por hora:
    20 líneas · 809.1 col/h  SANTA FE AV.                 Palermo
    20 líneas · 809.1 col/h  SANTA FE AV.                 Palermo
    20 líneas · 764.6 col/h  SANTA FE AV.                 Palermo
-   21 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
-   21 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
-   22 líneas · 651.1 col/h  ALEM, LEANDRO N. AV.         Retiro
+   23 líneas · 701.7 col/h  ALEM, LEANDRO N. AV.         Retiro
+   23 líneas · 701.7 col/h  ALEM, LEANDRO N. AV.         Retiro
+   24 líneas · 701.7 col/h  ALEM, LEANDRO N. AV.         Retiro
    19 líneas · 626.7 col/h  SANTA FE AV.                 Palermo
 
 Escrito output/blocks_lines.csv

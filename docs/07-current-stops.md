@@ -44,11 +44,19 @@ dónde, sin geometría de por medio.
 Detalles sucios: las coordenadas usan coma decimal, y una fila trae `V` donde
 debería ir el número de línea.
 
-## Es más completa que el padrón de EPOK
+## Es más completa que el padrón de EPOK, y eso escondía un error
 
 Cinco líneas aparecen en las paradas y **no** en el padrón vigente de EPOK que
-veníamos usando como referencia: **5, 6, 99, 112 y 175**. EPOK no es
-exhaustivo.
+veníamos usando como referencia: **5, 6, 99, 112 y 175**.
+
+No era sólo una curiosidad. El Paso A filtraba las trazas del GTFS contra ese
+padrón, así que esas cinco líneas quedaban descartadas **aunque el GTFS sí las
+tiene**: 5 con 4 trazas, 6 con 8, 99 con 2, 112 con 2, 175 con 2. Cinco líneas
+con geometría propia afuera del mapa por un padrón incompleto.
+
+Ahora el padrón es la unión de los dos, y las líneas realmente ausentes del
+GTFS quedaron en tres: **119, 145 y 164**. El acierto contra las paradas subió
+de 89,8 % a **91,4 %** sólo por esto.
 
 ## Cuánto le errábamos: 10,2 %
 
@@ -60,8 +68,8 @@ Medido en [`scripts/11_validate_stops.py`](../scripts/11_validate_stops.py):
 | | |
 |---|---|
 | Pares parada-línea evaluados | 11.293 |
-| La cuadra ya tenía esa línea | 10.142 (**89,8 %**) |
-| No la tenía | 1.151 (**10,2 %**) |
+| La cuadra ya tenía esa línea | 10.321 (**91,4 %**) |
+| No la tenía | 972 (**8,6 %**) |
 
 Y el error tiene un patrón nítido:
 

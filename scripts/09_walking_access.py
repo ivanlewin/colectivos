@@ -54,55 +54,66 @@ def line_number(short_name):
     return int(match.group(1)) if match else None
 
 
-def stops_by_route(roster):
-    """{route_id: (línea, colectivos por hora, {stop_id, ...})}.
+def buses_per_hour_by_service(by_service):
+    """{(línea, sentido): colectivos por hora}.
 
-    Se agrupa por ramal y no por línea porque los ramales de una misma línea
-    paran en lugares distintos: sumarle a una cuadra la frecuencia de toda la
-    línea porque tiene cerca la parada de un solo ramal inflaría el acceso.
+    Las frecuencias salen del GTFS 2019, la única fuente que las tiene, y allí
+    vienen por ramal con un `direction_id` 0/1 que no se puede mapear con
+    confianza al 'I'/'V' de las paradas: nada dice cuál es cuál, y equivocarse
+    invertiría ida con vuelta.
 
-    Encadena routes -> trips -> stop_times. En el feed *frequency* que usa el
-    proyecto, stop_times.txt son 17 MB y entra en memoria sin problema; en el
-    GTFS completo el mismo archivo pesa 1,4 GB.
+    Así que se reparte el total de la línea en partes iguales entre los
+    sentidos que tenga. Ida y vuelta suelen tener servicio simétrico, así que
+    el error está acotado, y una cuadra que alcanza los dos sentidos recupera
+    el total exacto de la línea.
+
+    Las ocho líneas que el GTFS no tiene quedan en cero: cuentan para la
+    métrica de cantidad de líneas pero no aportan a la de colectivos por hora.
     """
     route_line = {
         row["route_id"]: common.line_number(row["route_short_name"])
         for row in common.gtfs_rows("routes.txt")
-        if common.line_number(row["route_short_name"]) in roster
     }
-
     per_trip = common.buses_per_hour_by_trip()
-    buses = collections.Counter()
-    trip_route = {}
+    by_line = collections.Counter()
     for row in common.gtfs_rows("trips.txt"):
-        route_id = row["route_id"]
-        if route_id in route_line:
-            trip_route[row["trip_id"]] = route_id
-            buses[route_id] += per_trip.get(row["trip_id"], 0.0)
+        line = route_line.get(row["route_id"])
+        if line is not None:
+            by_line[line] += per_trip.get(row["trip_id"], 0.0)
 
-    stops = collections.defaultdict(set)
-    for row in common.gtfs_rows("stop_times.txt"):
-        route_id = trip_route.get(row["trip_id"])
-        if route_id is not None:
-            stops[route_id].add(str(row["stop_id"]))
-
+    directions = collections.Counter(line for line, _ in by_service)
     return {
-        route_id: (route_line[route_id], buses[route_id], stop_ids)
-        for route_id, stop_ids in stops.items()
+        (line, direction): by_line.get(line, 0.0) / directions[line]
+        for line, direction in by_service
     }
 
 
-def load_stop_coords(project):
-    """{stop_id: (x, y)} en metros."""
-    coords = {}
-    with (GTFS / "stops.txt").open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            try:
-                lon, lat = float(row["stop_lon"]), float(row["stop_lat"])
-            except (TypeError, ValueError):
-                continue
-            coords[str(row["stop_id"])] = project(lon, lat)
-    return coords
+def stops_by_service():
+    """{(línea, sentido): [(lon, lat), ...]} de las paradas vigentes.
+
+    Fuente: Secretaría de Transporte y Obras Públicas, junio de 2026. Reemplaza
+    a las del GTFS 2019, que era la única disponible cuando se escribió este
+    paso.
+
+    Se agrupa por línea **y sentido** porque es la granularidad que trae el
+    dataset, y porque importa: llegar a la parada de la ida no da acceso a la
+    vuelta, que suele ir por otra calle.
+
+    Nota sobre el sesgo de borde: se probó sumar las paradas del GTFS que caen
+    fuera de CABA, para que las cuadras pegadas a la General Paz o al Riachuelo
+    dejaran de tener medio radio de caminata ciego. No sirve, y la medición es
+    contundente: de 30.802 paradas foráneas, ninguna quedó a menos de 60 m de
+    una calle de CABA, y **cero cuadras** ganaron una sola línea. El problema
+    no son las paradas sino el grafo: el callejero termina en el límite de la
+    Ciudad, así que aunque la parada exista no hay por dónde caminar hasta
+    ella. Arreglarlo de verdad necesita una red de calles del conurbano, que el
+    proyecto no tiene.
+    """
+    by_service = collections.defaultdict(list)
+    for lon, lat, _street, _number, services in common.current_stops():
+        for line, direction in services:
+            by_service[(line, direction)].append((lon, lat))
+    return by_service
 
 
 class WalkGraph:
@@ -163,14 +174,16 @@ def main():
 
     common.heading("Acceso caminando")
 
-    roster = {int(p["linea"]) for p in common.properties()}
-    by_route = stops_by_route(roster)
-    print(f"Ramales del padrón con paradas: {len(by_route)}")
-    print(f"Líneas distintas              : {len({v[0] for v in by_route.values()})}")
-    print(f"Paradas distintas             : "
-          f"{len({s for v in by_route.values() for s in v[2]})}")
-
-    stop_coords = load_stop_coords(project)
+    by_service = stops_by_service()
+    buses = buses_per_hour_by_service(by_service)
+    lines = {line for line, _ in by_service}
+    print(f"Paradas vigentes (junio 2026) : "
+          f"{len({c for v in by_service.values() for c in v})}")
+    print(f"Líneas                        : {len(lines)}")
+    print(f"Combinaciones línea + sentido : {len(by_service)}")
+    print(f"Sin frecuencia en el GTFS 2019: "
+          f"{len({line for line in lines if not any(buses[k] for k in by_service if k[0] == line)})}"
+          f"   (suman 0 col/hora)")
 
     # --- grafo peatonal ---
     graph = WalkGraph()
@@ -186,57 +199,63 @@ def main():
     print(f"   grado más común      : {degrees.most_common(3)}")
 
     # --- cada parada, enganchada a la cuadra más cercana ---
+    # Las coordenadas se deduplican: una misma parada sirve a varias líneas y
+    # engancharla una sola vez ahorra la mayor parte del trabajo.
     tree = STRtree(graph.geometries)
-    entry_points = {}          # stop_id -> [(nodo, metros hasta ese nodo)]
+    entry_points = {}          # (lon, lat) -> [(nodo, metros hasta ese nodo)]
     unmatched = 0
-    for stop_id, (x, y) in stop_coords.items():
-        point = Point(x, y)
+    for coord in {c for coords in by_service.values() for c in coords}:
+        point = Point(*project(*coord))
         index = tree.nearest(point)
         geometry = graph.geometries[index]
-        if point.distance(geometry) > 60:   # parada lejos de toda calle de CABA
+        if point.distance(geometry) > 60:
             unmatched += 1
             continue
         # Distancia caminando hasta cada punta de esa cuadra.
         along = geometry.project(point)
         _, node_a, node_b = graph.blocks[index]
-        entry_points[stop_id] = [(node_a, along), (node_b, geometry.length - along)]
+        entry_points[coord] = [(node_a, along), (node_b, geometry.length - along)]
 
     print(f"\nParadas enganchadas al callejero: {len(entry_points)}")
-    print(f"   descartadas por estar lejos   : {unmatched} (paradas del conurbano)")
+    print(f"   descartadas por estar lejos   : {unmatched}")
+    print("   (las del conurbano que no llegan a tocar una calle de CABA: el")
+    print("    grafo termina en el límite, así que a ésas no se puede caminar)")
 
-    # --- una corrida de Dijkstra por ramal ---
+    # --- una corrida de Dijkstra por línea y sentido ---
+    # La línea se cuenta una sola vez aunque se alcancen sus dos sentidos; los
+    # colectivos por hora se suman, porque ida y vuelta son servicios
+    # distintos y alcanzar los dos vale más que alcanzar uno.
     lines_per_block = collections.defaultdict(set)
     buses_per_block = collections.Counter()
     stops_near = collections.Counter()
 
-    print(f"\nCalculando alcance a {WALK_RADIUS_M} m por ramal...")
-    for count, (route_id, (number, buses, stop_ids)) in enumerate(sorted(by_route.items()), 1):
+    print(f"\nCalculando alcance a {WALK_RADIUS_M} m por línea y sentido...")
+    for count, (service, coords) in enumerate(sorted(by_service.items()), 1):
         sources = {}
-        for stop_id in stop_ids:
-            for node, distance in entry_points.get(stop_id, []):
+        for coord in coords:
+            for node, distance in entry_points.get(coord, []):
                 if distance < sources.get(node, math.inf):
                     sources[node] = distance
         if not sources:
             continue
         reached = graph.dijkstra(sources, WALK_RADIUS_M)
+        line, _direction = service
+        frequency = buses[service]
         for block_id, node_a, node_b in graph.blocks:
             if node_a in reached or node_b in reached:
-                # La línea se cuenta una sola vez aunque lleguen varios de sus
-                # ramales; los colectivos por hora se suman, porque cada ramal
-                # son servicios distintos.
-                lines_per_block[block_id].add(number)
-                buses_per_block[block_id] += buses
-        if count % 100 == 0:
-            print(f"   {count}/{len(by_route)} ramales procesados")
+                lines_per_block[block_id].add(line)
+                buses_per_block[block_id] += frequency
+        if count % 50 == 0:
+            print(f"   {count}/{len(by_service)} combinaciones procesadas")
 
     # Paradas a pie, sin distinguir línea: una sola corrida desde todas.
     all_sources = {}
-    for stop_id in entry_points:
-        for node, distance in entry_points[stop_id]:
+    for entries in entry_points.values():
+        for node, distance in entries:
             if distance < all_sources.get(node, math.inf):
                 all_sources[node] = distance
     reached_any = graph.dijkstra(all_sources, WALK_RADIUS_M)
-    for stop_id, entries in entry_points.items():
+    for entries in entry_points.values():
         for node, _ in entries:
             if node in reached_any:
                 stops_near[node] += 1

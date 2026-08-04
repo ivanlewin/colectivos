@@ -18,8 +18,9 @@ Una línea se atribuye a la cuadra si cumple todo eso en al menos
 MIN_SAMPLE_RATIO de las muestras, es decir si la acompaña a lo largo y no la
 roza en un punto.
 
-Sólo se consideran las líneas del padrón vigente de EPOK, así que quedan afuera
-las líneas suburbanas del GTFS que ya no entran a la Ciudad.
+Sólo se consideran las líneas que sirven a la Ciudad —ver caba_line_roster()—,
+así que quedan afuera las 130 y pico de líneas suburbanas que el GTFS trae y
+que nunca entran a CABA.
 
 Escribe output/blocks_lines.csv con una fila por cuadra.
 
@@ -77,9 +78,23 @@ GTFS_COVERAGE_THRESHOLD = 0.7
 STOP_ROUTES_CSV = common.ROOT / "output" / "stop_routes.csv"
 
 
-def epok_line_roster():
-    """Números de línea del padrón vigente de EPOK."""
-    return {int(p["linea"]) for p in common.properties()}
+def caba_line_roster():
+    """Números de línea que sirven a la Ciudad.
+
+    Se toma la unión de dos padrones porque ninguno es completo por sí solo.
+
+    Durante un tiempo se usó sólo el de EPOK, y eso escondía un error: EPOK no
+    lista las líneas 5, 6, 99, 112 y 175, así que el filtro las descartaba del
+    GTFS **aunque el GTFS sí las tiene**. Cinco líneas con traza propia
+    quedaban afuera del mapa por un padrón incompleto.
+
+    Las paradas vigentes traen 137 líneas y son la fuente más actual, pero se
+    unen con las de EPOK igual: es gratis y protege del caso simétrico.
+    """
+    from_epok = {int(p["linea"]) for p in common.properties()}
+    from_stops = {line for *_rest, services in common.current_stops()
+                  for line, _direction in services}
+    return from_epok | from_stops
 
 
 def shape_service(roster):
@@ -275,9 +290,9 @@ def main():
     to_metric = Transformer.from_crs("EPSG:4326", common.CABA_CRS, always_xy=True)
     project = lambda lons, lats: to_metric.transform(lons, lats)
 
-    roster = epok_line_roster()
+    roster = caba_line_roster()
     common.heading("Atribución de líneas a cuadras")
-    print(f"Padrón EPOK vigente        : {len(roster)} líneas")
+    print(f"Padrón de líneas de CABA   : {len(roster)} líneas")
 
     service = shape_service(roster)
     geoms, bearings, seg_shapes, shape_ids = load_shape_segments(project, service)

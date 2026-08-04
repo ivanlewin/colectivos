@@ -61,11 +61,16 @@ Uso: python3 scripts/10_ideal_blocks.py
 
 import collections
 import csv
+import json
 
 import common
 
 ACCESS_CSV = common.ROOT / "output" / "blocks_access.csv"
 OUTPUT_CSV = common.ROOT / "output" / "ideal_blocks.csv"
+# Las constantes de normalización que consume la página. Se escriben acá y
+# 08_build_web_data.py las copia a web/data/, para que no haya que
+# mantenerlas a mano en el HTML.
+NORM_JSON = common.ROOT / "output" / "index_norm.json"
 
 # Peso por defecto del ruido.
 DEFAULT_WEIGHT = 1.0
@@ -219,8 +224,8 @@ def main():
               f"   {named[street]:4d} cuadras")
 
     common.heading("Constantes de normalización")
-    print("Son las que usa la página. Si cambian los datos, hay que")
-    print("actualizarlas también en web/index.html (constante NORM).\n")
+    print("Se escriben en output/index_norm.json y la página las lee de ahí,")
+    print("así no hay dos verdades que se puedan desincronizar.\n")
     print(f"{'':22s} {'acceso (p99)':>14s} {'colectivos (p95)':>18s}")
 
     constants = {}
@@ -229,6 +234,13 @@ def main():
         norm_buses = percentile([r[noise_key] for r in rows], 0.95)
         constants[label] = (access_key, noise_key, norm_access, norm_buses)
         print(f"{label:22s} {norm_access:14.1f} {norm_buses:18.1f}")
+
+    NORM_JSON.write_text(json.dumps({
+        "lines": {"access": constants["líneas"][2],
+                  "noise": constants["líneas"][3]},
+        "buses": {"access": round(constants["colectivos por hora"][2], 1),
+                  "noise": round(constants["colectivos por hora"][3], 1)},
+    }, indent=2), encoding="utf-8")
 
     candidates = [r for r in rows if r["candidate"]]
     print(f"\nCuadras candidatas: {len(candidates)} de {len(rows)} "

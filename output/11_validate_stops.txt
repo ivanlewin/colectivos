@@ -15,8 +15,8 @@ Resultado
 Paradas descartadas por estar a más de 30 m de cualquier cuadra: 118
 
 Pares parada-línea evaluados: 11293
-   la cuadra ya tiene esa línea : 10142 (89.8 %)
-   no la tiene                  : 1151 (10.2 %)
+   la cuadra ya tiene esa línea : 10321 (91.4 %)
+   no la tiene                  : 972 (8.6 %)
 
 ======================================================================
 Dónde está el error
@@ -26,8 +26,6 @@ Líneas ordenadas por paradas sin atribuir:
     línea  faltan     de         causa probable
       145     167    167   100 %  la línea no existe en el GTFS 2019
       008     115    216    53 %  el recorrido cambió desde 2019
-      006      91     91   100 %  no está en el padrón EPOK
-      099      88     88   100 %  no está en el padrón EPOK
       119      56     56   100 %  la línea no existe en el GTFS 2019
       090      37    153    24 %  el recorrido cambió desde 2019
       164      36     36   100 %  la línea no existe en el GTFS 2019
@@ -39,6 +37,8 @@ Líneas ordenadas por paradas sin atribuir:
       028      16    123    13 %  el recorrido cambió desde 2019
       143      15    106    14 %  el recorrido cambió desde 2019
       169      14     43    33 %  el recorrido cambió desde 2019
+      039      12    115    10 %  el recorrido cambió desde 2019
+      126      12    114    11 %  el recorrido cambió desde 2019
 
 El detalle de cada faltante queda en output/stop_validation.csv
 Todas esas paradas sí están incorporadas al resultado final: el parche

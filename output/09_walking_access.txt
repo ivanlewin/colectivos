@@ -1,55 +1,60 @@
+/Users/ivan/projects/colectivos/.venv/lib/python3.14/site-packages/shapely/measurement.py:81: RuntimeWarning: invalid value encountered in distance
+  return lib.distance(a, b, **kwargs)
 
 ======================================================================
 Acceso caminando
 ======================================================================
-Ramales del padrón con paradas: 550
-Líneas distintas              : 129
-Paradas distintas             : 19610
+Paradas vigentes (junio 2026) : 6852
+Líneas                        : 137
+Combinaciones línea + sentido : 293
+Sin frecuencia en el GTFS 2019: 3   (suman 0 col/hora)
 
 Grafo peatonal: 31961 cuadras, 18148 esquinas
    esquinas sin conexión: 153
    grado más común      : [(4, 9990), (3, 6404), (2, 720)]
 
-Paradas enganchadas al callejero: 8399
-   descartadas por estar lejos   : 34064 (paradas del conurbano)
+Paradas enganchadas al callejero: 6836
+   descartadas por estar lejos   : 16
+   (las del conurbano que no llegan a tocar una calle de CABA: el
+    grafo termina en el límite, así que a ésas no se puede caminar)
 
-Calculando alcance a 400 m por ramal...
-   100/550 ramales procesados
-   200/550 ramales procesados
-   300/550 ramales procesados
-   400/550 ramales procesados
-   500/550 ramales procesados
+Calculando alcance a 400 m por línea y sentido...
+   50/293 combinaciones procesadas
+   100/293 combinaciones procesadas
+   150/293 combinaciones procesadas
+   200/293 combinaciones procesadas
+   250/293 combinaciones procesadas
 
 ======================================================================
 Resultado
 ======================================================================
 Líneas a 400 m caminando, por cuadra:
    mediana : 6
-   máximo  : 37
-   cuadras sin ninguna línea a pie: 1402 (4.4%)
+   máximo  : 39
+   cuadras sin ninguna línea a pie: 1254 (3.9%)
 
 Colectivos por hora accesibles a pie:
-   mediana : 173
-   máximo  : 1323
+   mediana : 161
+   máximo  : 1489
 
 Por barrio — los 8 mejores y los 8 peores (líneas · col/hora):
-    20.6 ·    654   San Nicolas
-    19.5 ·    701   Constitucion
-    18.0 ·    595   Monserrat
-    16.7 ·    572   Balvanera
-    15.8 ·    477   San Telmo
-    12.2 ·    325   San Cristobal
-    11.8 ·    367   Almagro
-    11.0 ·    418   Recoleta
+    22.9 ·    637   San Nicolas
+    19.8 ·    698   Constitucion
+    18.5 ·    611   Monserrat
+    17.1 ·    524   Balvanera
+    15.9 ·    441   San Telmo
+    12.6 ·    298   Almagro
+    12.1 ·    334   Retiro
+    11.8 ·    344   San Cristobal
    ...
-     5.1 ·    119   Villa Urquiza
-     5.1 ·    142   Paternal
-     4.9 ·    122   Agronomia
-     4.9 ·    147   Villa Riachuelo
-     4.9 ·    150   Mataderos
-     4.8 ·    110   Villa Lugano
-     4.7 ·    127   Villa Pueyrredon
-     2.1 ·     45   Villa Soldati
+     5.1 ·    119   Parque Chas
+     5.1 ·    149   Agronomia
+     5.1 ·    107   Villa Urquiza
+     5.0 ·    135   Paternal
+     5.0 ·    140   Villa Pueyrredon
+     4.7 ·    114   Villa Riachuelo
+     4.7 ·    129   Mataderos
+     2.2 ·     56   Villa Soldati
 
 ======================================================================
 Adelanto del Paso C: cuadras tranquilas y bien conectadas
@@ -57,30 +62,30 @@ Adelanto del Paso C: cuadras tranquilas y bien conectadas
 
 Sin colectivo encima, ordenadas por líneas a pie:
 
-    36 líneas ·   1303 col/h   CIUDADELA                    Constitucion
-    35 líneas ·   1292 col/h   CIUDADELA                    Constitucion
-    32 líneas ·   1158 col/h   TACUARI                      Constitucion
-    32 líneas ·   1145 col/h   O'BRIEN                      Constitucion
-    31 líneas ·    997 col/h   BRASIL                       Constitucion
-    30 líneas ·    960 col/h   ALVEAR, MARCELO T. DE        Retiro
-    30 líneas ·   1035 col/h   FINOCHIETTO ENRIQUE DR.      Barracas
-    29 líneas ·    925 col/h   CRUCERO GRAL. BELGRANO       Retiro
-    29 líneas ·    848 col/h   RECONQUISTA                  San Nicolas
-    29 líneas ·    970 col/h   CASTELLI                     Balvanera
+    36 líneas ·   1418 col/h   CIUDADELA                    Constitucion
+    35 líneas ·   1353 col/h   CIUDADELA                    Constitucion
+    33 líneas ·    767 col/h   ALVEAR, MARCELO T. DE        Retiro
+    33 líneas ·   1105 col/h   TACUARI                      Constitucion
+    33 líneas ·   1160 col/h   O'BRIEN                      Constitucion
+    33 líneas ·    758 col/h   DELLA PAOLERA, CARLOS M.     Retiro
+    32 líneas ·    868 col/h   RECONQUISTA                  San Nicolas
+    31 líneas ·    851 col/h   TRES SARGENTOS               Retiro
+    31 líneas ·    851 col/h   RECONQUISTA                  Retiro
+    31 líneas ·    823 col/h   BUTTY, ENRIQUE, ING.         Retiro
 
 Sin colectivo encima, ordenadas por colectivos por hora a pie:
 
-    36 líneas ·   1303 col/h   CIUDADELA                    Constitucion
-    35 líneas ·   1292 col/h   CIUDADELA                    Constitucion
-    32 líneas ·   1158 col/h   TACUARI                      Constitucion
-    32 líneas ·   1145 col/h   O'BRIEN                      Constitucion
-    26 líneas ·   1118 col/h   BORGES, JORGE LUIS           Palermo
-    28 líneas ·   1088 col/h   COCHABAMBA                   Constitucion
-    25 líneas ·   1075 col/h   GUEMES                       Palermo
-    29 líneas ·   1068 col/h   PIEDRAS                      
-    25 líneas ·   1056 col/h   GURRUCHAGA                   Palermo
-    25 líneas ·   1045 col/h   GUEMES                       Palermo
+    36 líneas ·   1418 col/h   CIUDADELA                    Constitucion
+    35 líneas ·   1353 col/h   CIUDADELA                    Constitucion
+    33 líneas ·   1160 col/h   O'BRIEN                      Constitucion
+    33 líneas ·   1105 col/h   TACUARI                      Constitucion
+    26 líneas ·   1098 col/h   BORGES, JORGE LUIS           Palermo
+    26 líneas ·   1098 col/h   GURRUCHAGA                   Palermo
+    24 líneas ·   1057 col/h   BERUTI                       Palermo
+    24 líneas ·   1040 col/h   REPUBLICA ARABE SIRIA        Palermo
+    24 líneas ·   1035 col/h   REPUBLICA ARABE SIRIA        Palermo
+    25 líneas ·    992 col/h   GUEMES                       Palermo
 
-Hay 16731 cuadras sin colectivo encima; 413 tienen 20 o más líneas a pie.
+Hay 16671 cuadras sin colectivo encima; 549 tienen 20 o más líneas a pie.
 
 Escrito output/blocks_access.csv

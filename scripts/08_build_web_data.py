@@ -46,6 +46,10 @@ _ideal = import_module("10_ideal_blocks")
 traffic_noise = _ideal.traffic_noise
 NO_ADDRESSES = _ideal.NO_ADDRESSES
 
+# El padrón de líneas se comparte con el Paso A, para que la página no muestre
+# un conjunto de líneas distinto del que se analizó.
+_attribute = import_module("07_attribute_lines")
+
 
 def round_coords(geometry):
     """Recorta la precisión de las coordenadas de un dict GeoJSON."""
@@ -136,7 +140,7 @@ def build_blocks():
 
 def build_routes():
     """Un feature por línea, con todos sus recorridos unidos y simplificados."""
-    roster = {int(p["linea"]) for p in common.properties()}
+    roster = _attribute.caba_line_roster()
 
     route_line = {}
     with (GTFS / "routes.txt").open(encoding="utf-8") as fh:
@@ -248,6 +252,14 @@ def main():
          "src": f["properties"]["src"]}
         for f in routes["features"]
     ]
+    # Las constantes del índice viajan con los datos: la página las lee de acá
+    # en vez de tenerlas escritas a mano, así no pueden desincronizarse.
+    norm_source = common.ROOT / "output" / "index_norm.json"
+    if norm_source.exists():
+        (WEB_DATA / "norm.json").write_text(
+            norm_source.read_text(encoding="utf-8"), encoding="utf-8")
+        print("norm.json         constantes de normalización del índice")
+
     path = WEB_DATA / "lines.json"
     path.write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")
     print(f"lines.json      {len(lines):6d} líneas    "

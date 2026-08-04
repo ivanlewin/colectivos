@@ -26,39 +26,47 @@ la **distancia sobre la red de calles**.
    Las autopistas y sus subidas, bajadas y enlaces quedan afuera: por ahí no se
    camina, y dejarlas adentro abriría atajos que no existen.
 
-2. **Qué líneas paran en cada parada.** Encadenando `stop_times.txt` →
-   `trips.txt` → `routes.txt`, filtrado al padrón vigente de EPOK. En el feed
-   *frequency* que usa el proyecto son 17 MB y entran en memoria; en el GTFS
-   completo el mismo archivo pesa 1,4 GB y habría que procesarlo en streaming.
+2. **Qué líneas paran en cada parada.** Sale directo de las **paradas
+   vigentes** de la Secretaría de Transporte (junio de 2026), que traen la
+   lista de líneas y su sentido en cada parada. Reemplazan a las del GTFS 2019,
+   que era la única fuente cuando se escribió este paso.
+
+   Se agrupa por línea **y sentido**, que es la granularidad que trae el
+   dataset y la que corresponde: llegar a la parada de la ida no da acceso a la
+   vuelta, que suele ir por otra calle.
 
 3. **Cada parada se engancha a su cuadra más cercana**, y se calcula la
    distancia hasta cada una de sus dos puntas. Eso importa: una parada a mitad
    de cuadra no está en la esquina, y arrancar el cálculo desde la esquina más
    próxima sumaría hasta 50 m de error por parada.
 
-4. **Un Dijkstra multi-origen por línea**, cortado a 400 m — unos 5 minutos
-   caminando, el umbral habitual en planificación de transporte. Una cuadra
-   tiene acceso a esa línea si alguna de sus dos puntas cae dentro del corte.
+4. **Un Dijkstra multi-origen por línea y sentido**, cortado a 400 m — unos 5
+   minutos caminando, el umbral habitual en planificación de transporte. Una
+   cuadra alcanza ese servicio si alguna de sus dos puntas cae dentro del corte.
+
+   La línea se cuenta una sola vez aunque se alcancen sus dos sentidos; los
+   colectivos por hora se suman, porque ida y vuelta son servicios distintos.
 
 ## Resultado
 
 | | |
 |---|---|
-| Líneas del padrón con paradas | 129 |
-| Paradas enganchadas al callejero | 8.399 |
+| Líneas con paradas | **137** |
+| Combinaciones línea + sentido | 293 |
+| Paradas enganchadas al callejero | 6.836 de 6.852 |
 | Mediana de líneas a pie por cuadra | **6** |
-| Máximo | 37 |
-| Cuadras sin ninguna línea a pie | 1.402 (4,4 %) |
+| Máximo | 39 |
+| Cuadras sin ninguna línea a pie | 1.254 (3,9 %) |
 
 Por barrio, los extremos:
 
-| Mejor conectados | | Peor conectados | |
+| Mejor conectados | líneas · col/h | Peor conectados | líneas · col/h |
 |---|---|---|---|
-| San Nicolás | 20,6 | Villa Soldati | 2,1 |
-| Constitución | 19,5 | Villa Pueyrredón | 4,7 |
-| Monserrat | 18,0 | Villa Lugano | 4,8 |
-| Balvanera | 16,7 | Mataderos | 4,9 |
-| San Telmo | 15,8 | Villa Riachuelo | 4,9 |
+| San Nicolás | 22,9 · 637 | Villa Soldati | 2,2 · 56 |
+| Constitución | 19,8 · 698 | Mataderos | 4,7 · 129 |
+| Monserrat | 18,5 · 611 | Villa Riachuelo | 4,7 · 114 |
+| Balvanera | 17,1 · 524 | Villa Pueyrredón | 5,0 · 140 |
+| San Telmo | 15,9 · 441 | Paternal | 5,0 · 135 |
 
 ## Cómo se validó
 
@@ -74,13 +82,26 @@ ninguno de los dos extremos está metido en el método: salen de los datos.
 
 ## Limitaciones conocidas
 
-**Paradas del conurbano.** De las 42.464 paradas del GTFS, sólo 8.399 caen a
-menos de 60 m de una calle de CABA. El resto es del Gran Buenos Aires y se
-descarta, porque el grafo peatonal es el callejero porteño y no tiene con qué
-conectarlas. Consecuencia: **las cuadras pegadas a la General Paz o al Riachuelo
-tienen el acceso subestimado**, porque una parada del otro lado del límite no se
-cuenta aunque esté a 200 m caminando. Es el sesgo más importante de este paso, y
-afecta justo a los barrios que ya aparecen peor conectados.
+**El sesgo de borde no se pudo arreglar, y se midió por qué.** Las cuadras
+pegadas a la General Paz o al Riachuelo tienen medio radio de caminata fuera de
+la Ciudad, donde no hay paradas en el dataset vigente. Se probó completarlo con
+las paradas del GTFS que caen fuera de CABA, y el resultado fue contundente: de
+**30.802 paradas foráneas, ninguna** quedó a menos de 60 m de una calle
+porteña, y **cero cuadras** ganaron una sola línea.
+
+El problema no son las paradas sino el grafo: el callejero termina en el límite
+de la Ciudad, así que aunque la parada exista no hay por dónde caminar hasta
+ella. Arreglarlo de verdad necesita una red de calles del conurbano, que el
+proyecto no tiene. El sesgo sigue en pie y afecta justo a los barrios que ya
+aparecen peor conectados.
+
+**Las frecuencias siguen saliendo del GTFS 2019**, la única fuente que las
+tiene, y allí vienen por ramal con un `direction_id` 0/1 que no se puede mapear
+con confianza al `I`/`V` de las paradas. Así que el total de cada línea se
+reparte en partes iguales entre sus sentidos: ida y vuelta suelen tener servicio
+simétrico, el error queda acotado, y una cuadra que alcanza los dos sentidos
+recupera el total exacto. Tres líneas —119, 145 y 164— no están en el GTFS y
+suman 0 colectivos por hora, aunque sí cuentan como líneas.
 
 **El radio es una decisión, no un dato.** 400 m es una convención. Con 300 m el
 ranking se concentra todavía más en el microcentro; con 800 m se aplana. Conviene
@@ -89,26 +110,11 @@ que sea ajustable en la visualización en vez de quedar fijo.
 **Contar líneas y contar servicio son dos cosas distintas**, y por eso ahora se
 miden las dos. Ver [05-service-frequency.md](05-service-frequency.md).
 
-**Hereda la vigencia del GTFS 2019**, igual que el Paso A. Y arrastra el sesgo de
-que las paradas son las de 2019, que cambian más seguido que los recorridos.
-
 ## Adelanto del Paso C
 
-Cruzando las dos métricas ya aparece lo que buscaba el proyecto. De las 17.016
-cuadras sin ningún colectivo encima, **429 tienen 20 o más líneas a pie**. Las
-primeras:
+Cruzando las dos métricas aparece lo que buscaba el proyecto: de las 16.671
+cuadras sin ningún colectivo encima, **549 tienen 20 o más líneas a pie**.
 
-| Líneas a pie | Cuadra | Barrio |
-|---|---|---|
-| 36 | Ciudadela | Constitución |
-| 32 | Tacuarí | Constitución |
-| 32 | O'Brien | Constitución |
-| 31 | Brasil | Constitución |
-| 30 | Marcelo T. de Alvear | Retiro |
-| 30 | Enrique Finochietto | Barracas |
-| 29 | Reconquista | San Nicolás |
-| 29 | Castelli | Balvanera |
-
-Son exactamente lo que se buscaba: calles laterales a una o dos cuadras de los
-centros de trasbordo, sin colectivos por la puerta. Falta convertir esto en un
-índice con pesos ajustables y llevarlo al mapa.
+Eso se convirtió en el índice del [Paso C](06-ideal-block-index.md), que agrega
+la tercera pieza —el ruido de tránsito— y lo lleva al mapa con el peso
+ajustable.
