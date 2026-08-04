@@ -66,6 +66,13 @@ if want "$TARGET" stops; then
         "$DATA/stops.csv" "CSV, ~0,8 MB"
 fi
 
+# --- Polígonos de los 48 barrios ---------------------------------------------
+if want "$TARGET" barrios; then
+  echo "[barrios] límites de los barrios (Buenos Aires Data)"
+  fetch "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ministerio-de-educacion/barrios/barrios.geojson" \
+        "$DATA/barrios.geojson" "GeoJSON, ~0,7 MB"
+fi
+
 # --- Callejero de CABA, un feature por cuadra --------------------------------
 if want "$TARGET" streets; then
   echo "[streets] callejero de CABA (Buenos Aires Data)"

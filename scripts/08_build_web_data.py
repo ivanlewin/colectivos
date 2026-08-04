@@ -18,13 +18,14 @@ import csv
 import json
 import re
 
-from shapely.geometry import LineString, mapping
+from shapely.geometry import LineString, mapping, shape
 from shapely.ops import linemerge
 
 import common
 
 GTFS = common.ROOT / "data" / "gtfs_frequency"
 STREETS = common.ROOT / "data" / "streets.geojson"
+BARRIOS = common.ROOT / "data" / "barrios.geojson"
 BLOCKS_CSV = common.ROOT / "output" / "blocks_lines.csv"
 ACCESS_CSV = common.ROOT / "output" / "blocks_access.csv"
 WEB_DATA = common.ROOT / "web" / "data"
@@ -216,6 +217,72 @@ def build_routes():
     return {"type": "FeatureCollection", "features": features}
 
 
+def build_barrios(blocks):
+    """Los 48 barrios con el promedio de sus cuadras.
+
+    Es la vista que comunica: 48 polígonos se leen de un vistazo y 31.961
+    cuadras no. Sirve para la pregunta "¿qué barrios están mejor y peor
+    conectados?", que a nivel cuadra se pierde en el detalle.
+
+    El promedio se toma sólo sobre las cuadras con domicilios: incluir
+    autopistas y senderos de parque correría la media de los barrios que tienen
+    mucho de eso, sin que eso diga nada sobre vivir ahí.
+    """
+    if not BARRIOS.exists():
+        return None
+
+    totals = collections.defaultdict(lambda: collections.Counter())
+    counts = collections.Counter()
+    for feature in blocks["features"]:
+        props = feature["properties"]
+        if not props["b"] or not props["r"]:
+            continue
+        counts[props["b"]] += 1
+        for key in ("n", "bh", "nw", "bw", "tf"):
+            totals[props["b"]][key] += props[key]
+
+    features = []
+    for feature in json.loads(BARRIOS.read_text(encoding="utf-8"))["features"]:
+        name = feature["properties"]["nombre"]
+        blocks_here = counts.get(name, 0)
+        if not blocks_here:
+            continue
+        mean = {k: totals[name][k] / blocks_here for k in ("n", "bh", "nw", "bw", "tf")}
+        centre = shape(feature["geometry"]).representative_point()
+        features.append({
+            "type": "Feature",
+            "geometry": round_coords(feature["geometry"]),
+            "properties": {
+                "s": name,
+                "b": name,
+                "cuadras": blocks_here,
+                # Punto adentro del polígono, para que la lista pueda volar
+                # hasta el barrio. No es el centroide: en barrios con forma de
+                # ele el centroide puede caer afuera.
+                "c": [round(centre.x, 5), round(centre.y, 5)],
+                "r": True,
+                "n": round(mean["n"], 2),
+                "bh": round(mean["bh"], 1),
+                "nw": round(mean["nw"], 2),
+                "bw": round(mean["bw"], 1),
+                "tf": round(mean["tf"], 3),
+            },
+        })
+    return {"type": "FeatureCollection", "features": features}
+
+
+def quantile_breaks(values, classes=4):
+    """Cortes que parten `values` en `classes` grupos de tamaño parecido.
+
+    Los promedios por barrio viven en un rango mucho más chico que los valores
+    por cuadra —2,4 líneas contra 29—, así que la escala de cuadras dejaría a
+    los 48 barrios apretados en la clase más baja. Cada capa necesita la suya.
+    """
+    ordered = sorted(values)
+    return [round(ordered[int(len(ordered) * i / classes)], 2)
+            for i in range(1, classes)]
+
+
 def main():
     if not BLOCKS_CSV.exists():
         raise SystemExit(
@@ -252,13 +319,27 @@ def main():
          "src": f["properties"]["src"]}
         for f in routes["features"]
     ]
+    barrios = build_barrios(blocks)
+    if barrios is not None:
+        path = WEB_DATA / "barrios.geojson"
+        path.write_text(json.dumps(barrios, ensure_ascii=False, separators=(",", ":")),
+                        encoding="utf-8")
+        print(f"barrios.geojson {len(barrios['features']):6d} barrios   "
+              f"{path.stat().st_size / 1e6:6.1f} MB")
+
     # Las constantes del índice viajan con los datos: la página las lee de acá
     # en vez de tenerlas escritas a mano, así no pueden desincronizarse.
     norm_source = common.ROOT / "output" / "index_norm.json"
     if norm_source.exists():
-        (WEB_DATA / "norm.json").write_text(
-            norm_source.read_text(encoding="utf-8"), encoding="utf-8")
-        print("norm.json         constantes de normalización del índice")
+        norm = json.loads(norm_source.read_text(encoding="utf-8"))
+        if barrios is not None:
+            # Cortes propios para la capa de barrios, en cuartiles.
+            norm["barrio_breaks"] = {
+                key: quantile_breaks([f["properties"][key] for f in barrios["features"]])
+                for key in ("n", "bh", "nw", "bw")
+            }
+        (WEB_DATA / "norm.json").write_text(json.dumps(norm, indent=2), encoding="utf-8")
+        print("norm.json         constantes del índice y cortes por barrio")
 
     path = WEB_DATA / "lines.json"
     path.write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")

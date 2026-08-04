@@ -330,6 +330,13 @@
           <option value="buses">Colectivos por hora</option>
         </select>
       </label>
+      <label>
+        Detalle
+        <select id="grain">
+          <option value="block">Cuadra por cuadra</option>
+          <option value="barrio">Promedio por barrio</option>
+        </select>
+      </label>
       <label id="weight-field" hidden>
         <span>Cuánto molesta el ruido: <b id="weight-value">1,0</b></span>
         <input id="weight" type="range" min="0" max="2" step="0.1" value="1">
@@ -339,7 +346,7 @@
     <div id="legend"></div>
 
     <div id="ranking" hidden>
-      <h2>Las mejores cuadras</h2>
+      <h2 id="ranking-title">Las mejores cuadras</h2>
       <ol id="ranking-list"></ol>
     </div>
   </div>
@@ -448,7 +455,39 @@ const VIEWS = {
 
 let layerMode = 'on';       // 'on' = pasa por la cuadra | 'walk' = a pie | 'index'
 let metricMode = 'lines';   // 'lines' | 'buses'
+let grain = 'block';        // 'block' = por cuadra | 'barrio' = promedio del barrio
 const view = () => VIEWS[`${layerMode}-${metricMode}`];
+const onBarrios = () => grain === 'barrio';
+
+// Los promedios por barrio viven en un rango mucho más chico que los valores
+// por cuadra —2,4 líneas contra 29—, así que necesitan sus propios cortes. Los
+// calcula 08_build_web_data.py por cuartiles y llegan en norm.json. El índice
+// no está acá: da 0..100 en las dos capas, así que usa los mismos cortes.
+let BARRIO_BREAKS = null;
+
+function activeBreaks() {
+  const v = view();
+  if (!onBarrios() || layerMode === 'index' || !BARRIO_BREAKS) return v.breaks;
+  const prop = metricMode === 'lines'
+    ? (layerMode === 'on' ? 'n' : 'nw')
+    : (layerMode === 'on' ? 'bh' : 'bw');
+  return [0.0001, ...(BARRIO_BREAKS[prop] || [])];
+}
+
+// Con los cortes del barrio, las etiquetas de la leyenda tienen que
+// recalcularse: "1 a 2" no significa nada sobre un promedio.
+function activeLabels() {
+  const v = view();
+  if (!onBarrios() || layerMode === 'index') return v.labels;
+  const breaks = activeBreaks().slice(1);
+  const round = x => (x >= 100 ? Math.round(x) : x.toFixed(1).replace('.', ','));
+  return [
+    `hasta ${round(breaks[0])}`,
+    `${round(breaks[0])} a ${round(breaks[1])}`,
+    `${round(breaks[1])} a ${round(breaks[2])}`,
+    `más de ${round(breaks[2])}`,
+  ];
+}
 
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -484,9 +523,8 @@ const basemap = () => isDark()
   : 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
 function colorExpression() {
-  const v = view();
-  const expr = ['step', v.value(), css(CLASS_STYLE[0].varName)];
-  v.breaks.forEach((min, i) => expr.push(min, css(CLASS_STYLE[i + 1].varName)));
+  const expr = ['step', view().value(), css(CLASS_STYLE[0].varName)];
+  activeBreaks().forEach((min, i) => expr.push(min, css(CLASS_STYLE[i + 1].varName)));
   return expr;
 }
 
@@ -538,14 +576,23 @@ let allLines = [];
 // Copia liviana de las cuadras para poder rankearlas sin depender de qué
 // tiles tenga cargadas el mapa. Se llena en el load.
 let blockIndex = [];
+let barrioIndex = [];
 
 map.on('load', async () => {
   // Las constantes del índice las calcula el análisis; si el archivo no está,
   // quedan las de respaldo declaradas arriba.
   await fetch('data/norm.json')
     .then(r => r.ok ? r.json() : null)
-    .then(loaded => { if (loaded) NORM = loaded; })
+    .then(loaded => {
+      if (!loaded) return;
+      NORM = loaded;
+      BARRIO_BREAKS = loaded.barrio_breaks || null;
+    })
     .catch(() => {});
+
+  const barrios = await fetch('data/barrios.geojson')
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null);
 
   // Se descarga acá en vez de pasarle la URL a MapLibre porque el ranking
   // necesita las 31.961 cuadras, no sólo las visibles.
@@ -557,6 +604,10 @@ map.on('load', async () => {
 
   map.addSource('blocks', { type: 'geojson', data: blocks });
   map.addSource('routes', { type: 'geojson', data: 'data/routes.geojson' });
+  if (barrios) {
+    barrioIndex = barrios.features.map(f => f.properties);
+    map.addSource('barrios', { type: 'geojson', data: barrios });
+  }
 
   map.addLayer({
     id: 'blocks',
@@ -606,6 +657,25 @@ map.on('load', async () => {
     paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 10 },
   });
 
+  // Los barrios se pintan rellenos y no con líneas: son áreas, no ejes. Se
+  // dibujan bajo las demás capas para que el recorrido elegido siga arriba.
+  if (barrios) {
+    map.addLayer({
+      id: 'barrios',
+      type: 'fill',
+      source: 'barrios',
+      layout: { visibility: 'none' },
+      paint: { 'fill-color': colorExpression(), 'fill-opacity': 0.62 },
+    }, 'blocks');
+    map.addLayer({
+      id: 'barrios-line',
+      type: 'line',
+      source: 'barrios',
+      layout: { visibility: 'none' },
+      paint: { 'line-color': css('--surface'), 'line-width': 1, 'line-opacity': 0.5 },
+    }, 'blocks');
+  }
+
   buildLegend();
 
   allLines = await fetch('data/lines.json').then(r => r.json());
@@ -634,6 +704,29 @@ map.on('load', async () => {
   });
   map.on('mouseenter', 'blocks-hit', () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', 'blocks-hit', () => { map.getCanvas().style.cursor = ''; });
+
+  // Detalle de un barrio. Las cifras son promedios de sus cuadras, así que
+  // conviene decirlo y no repetir el formato del popup de cuadra.
+  if (barrios) {
+    map.on('click', 'barrios', event => {
+      const p = event.features[0].properties;
+      const decimal = x => Number(x).toFixed(1).replace('.', ',');
+      popup.setLngLat(event.lngLat).setHTML(`
+        <div class="pop-street">${p.s}</div>
+        <div class="pop-meta">${p.cuadras} cuadras · promedios</div>
+        <div class="pop-lines">Por la cuadra: <b>${decimal(p.n)}</b> líneas,
+          <b>${Math.round(p.bh)}</b> col/hora</div>
+        <div class="pop-lines pop-walk">A pie: <b>${decimal(p.nw)}</b> líneas,
+          <b>${Math.round(p.bw)}</b> col/hora</div>
+        ${layerMode === 'index'
+          ? `<div class="pop-lines">Índice: <b>` +
+            `${Math.round(blockScore(p, metricMode))}</b> sobre 100</div>`
+          : ''}
+      `).addTo(map);
+    });
+    map.on('mouseenter', 'barrios', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'barrios', () => { map.getCanvas().style.cursor = ''; });
+  }
 });
 
 /* ---------------------------------------------------------------- selector */
@@ -792,7 +885,8 @@ pickerSearch.addEventListener('keydown', event => {
 
 function buildLegend() {
   const v = view();
-  document.getElementById('legend-title').textContent = v.caption;
+  document.getElementById('legend-title').textContent =
+    onBarrios() ? `${v.caption} — promedio del barrio` : v.caption;
 
   const legend = document.getElementById('legend');
   legend.innerHTML = '';
@@ -810,7 +904,7 @@ function buildLegend() {
   const gap = document.createElement('div');
   gap.className = 'legend-gap';
   legend.appendChild(gap);
-  v.labels.forEach((label, i) => legend.appendChild(row(label, i + 1)));
+  activeLabels().forEach((label, i) => legend.appendChild(row(label, i + 1)));
 }
 
 /* ------------------------------------------------------------- controles */
@@ -834,8 +928,12 @@ function blockScore(block, metric) {
 }
 
 function buildRanking() {
-  if (layerMode !== 'index' || !blockIndex.length) return;
+  if (layerMode !== 'index') return;
 
+  const source = onBarrios() ? barrioIndex : blockIndex;
+  if (!source.length) return;
+  document.getElementById('ranking-title').textContent =
+    onBarrios() ? 'Los mejores barrios' : 'Las mejores cuadras';
   const access = b => (metricMode === 'lines' ? b.nw : b.bw);
 
   // Muchas cuadras empatan arriba en el puntaje máximo, así que se desempata
@@ -843,7 +941,7 @@ function buildRanking() {
   // veces la misma calle no ayuda a nadie a elegir dónde vivir.
   const seen = new Set();
   const best = [];
-  const ordered = blockIndex
+  const ordered = source
     .map(b => ({ b, score: blockScore(b, metricMode) }))
     .filter(x => x.score > 0)
     .sort((x, y) => y.score - x.score || access(y.b) - access(x.b));
@@ -861,12 +959,17 @@ function buildRanking() {
     const item = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
+    // En la capa de barrios el nombre y el barrio son lo mismo, así que en vez
+    // de repetirlo se muestra de cuántas cuadras sale el promedio.
+    const detail = onBarrios()
+      ? `${b.cuadras} cuadras`
+      : (b.b || '—');
     button.innerHTML =
       `<span class="rank-score">${Math.round(score)}</span>` +
       `<span><span class="rank-where">${b.s}${b.a ? ' ' + b.a : ''}</span> ` +
-      `<span class="rank-barrio">${b.b || '—'}</span></span>`;
+      `<span class="rank-barrio">${detail}</span></span>`;
     button.addEventListener('click', () => {
-      map.flyTo({ center: b.c, zoom: 16 });
+      map.flyTo({ center: b.c, zoom: onBarrios() ? 13.2 : 16 });
     });
     item.appendChild(button);
     rankingList.appendChild(item);
@@ -877,6 +980,18 @@ function applyView() {
   if (map.getLayer('blocks')) {
     map.setPaintProperty('blocks', 'line-color', colorExpression());
     map.setPaintProperty('blocks', 'line-width', widthExpression());
+  }
+  if (map.getLayer('barrios')) {
+    // La capa de barrios usa la misma expresión de color pero con sus cortes,
+    // que activeBreaks() ya resuelve según la granularidad.
+    const visible = onBarrios() ? 'visible' : 'none';
+    map.setLayoutProperty('barrios', 'visibility', visible);
+    map.setLayoutProperty('barrios-line', 'visibility', visible);
+    if (onBarrios()) map.setPaintProperty('barrios', 'fill-color', colorExpression());
+    map.setPaintProperty('barrios-line', 'line-color', css('--surface'));
+    // Con los barrios pintados, las cuadras estorban salvo que haya líneas
+    // elegidas, donde sirven de referencia.
+    map.setPaintProperty('blocks', 'line-opacity', onBarrios() ? 0.18 : 0.9);
   }
   buildLegend();
 
@@ -889,6 +1004,7 @@ function applyView() {
 for (const [id, apply] of [
   ['layer-mode',  value => { layerMode = value; }],
   ['metric-mode', value => { metricMode = value; }],
+  ['grain',       value => { grain = value; }],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
     apply(event.target.value);
