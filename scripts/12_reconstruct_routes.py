@@ -54,6 +54,18 @@ STOP_SNAP_M = 45
 # de esto en línea recta. Las paradas consecutivas rondan los 200-400 m.
 PAIR_RADIUS_M = 500
 
+# A cuántas vecinas se une cada parada. Es el parámetro que más importa.
+#
+# Unir todos los pares dentro del radio parece inofensivo pero no lo es: donde
+# las paradas se amontonan —una línea que zigzaguea, o dos tramos suyos a pocas
+# cuadras— genera del orden de n² tramos y el resultado es una retícula, no un
+# recorrido. Se veía clarísimo en Villa Crespo con la línea 145.
+#
+# Un recorrido es una cadena: cada parada tiene una anterior y una siguiente.
+# Con 2 vecinas eso se reproduce, y en las bifurcaciones la unión de las
+# cadenas de cada rama cubre las dos.
+NEIGHBOURS_PER_STOP = 2
+
 # Techo absoluto del camino reconstruido.
 MAX_PATH_M = 750
 
@@ -189,22 +201,33 @@ def main():
         for _x, _y, block_id in stops:
             lines_by_block[block_id].add(line)
 
+        # Cada parada propone sus NEIGHBOURS_PER_STOP vecinas más cercanas. El
+        # conjunto de pares es la unión, así que una parada puede terminar con
+        # más de dos si otras la eligen.
+        pairs = set()
         for i, (x1, y1, block_a) in enumerate(stops):
-            for x2, y2, block_b in stops[i + 1:]:
-                straight = math.dist((x1, y1), (x2, y2))
-                if straight > PAIR_RADIUS_M or straight == 0:
-                    continue
-                if block_a == block_b:
-                    continue
-                attempted += 1
-                distance, path = graph.shortest_path(
-                    graph.ends[block_a], graph.ends[block_b],
-                    min(MAX_PATH_M, straight * MAX_DETOUR))
-                if distance is None or not path:
-                    continue
-                joined += 1
-                for block_id in path:
-                    lines_by_block[block_id].add(line)
+            nearby = sorted(
+                ((math.dist((x1, y1), (x2, y2)), j)
+                 for j, (x2, y2, _b) in enumerate(stops) if j != i),
+                key=lambda pair: pair[0],
+            )[:NEIGHBOURS_PER_STOP]
+            for straight, j in nearby:
+                if 0 < straight <= PAIR_RADIUS_M and block_a != stops[j][2]:
+                    pairs.add((min(i, j), max(i, j)))
+
+        for i, j in pairs:
+            x1, y1, block_a = stops[i]
+            x2, y2, block_b = stops[j]
+            straight = math.dist((x1, y1), (x2, y2))
+            attempted += 1
+            distance, path = graph.shortest_path(
+                graph.ends[block_a], graph.ends[block_b],
+                min(MAX_PATH_M, straight * MAX_DETOUR))
+            if distance is None or not path:
+                continue
+            joined += 1
+            for block_id in path:
+                lines_by_block[block_id].add(line)
 
         if count % 50 == 0:
             print(f"   {count}/{len(by_service)} combinaciones procesadas")

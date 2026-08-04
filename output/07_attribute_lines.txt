@@ -41,22 +41,22 @@ A ésas se les incorpora el recorrido reconstruido; al resto no.
 ======================================================================
 Resultado
 ======================================================================
-Cuadras sin ninguna línea  : 18637 (58.3%)
-Cuadras con al menos una   : 13324 (41.7%)
+Cuadras sin ninguna línea  : 18728 (58.6%)
+Cuadras con al menos una   : 13233 (41.4%)
 Máximo de líneas en una cuadra: 29
 
 Distribución:
-    0 líneas:  18637 cuadras
-    1 líneas:   4904 cuadras
-    2 líneas:   2718 cuadras
-    3 líneas:   1761 cuadras
-    4 líneas:   1262 cuadras
-    5 líneas:    739 cuadras
-    6 líneas:    477 cuadras
-    7 líneas:    413 cuadras
+    0 líneas:  18728 cuadras
+    1 líneas:   4831 cuadras
+    2 líneas:   2705 cuadras
+    3 líneas:   1764 cuadras
+    4 líneas:   1260 cuadras
+    5 líneas:    745 cuadras
+    6 líneas:    470 cuadras
+    7 líneas:    408 cuadras
     8 líneas:    228 cuadras
-    9 líneas:    190 cuadras
-   10 líneas:    143 cuadras
+    9 líneas:    192 cuadras
+   10 líneas:    141 cuadras
    11 líneas:     96 cuadras
 
 Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
@@ -66,10 +66,10 @@ Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
 
 Control de calidad — promedio por jerarquía de vía:
                                          líneas  col/hora
-   VÍA DISTRIBUIDORA PRINCIPAL             4.79     96.91  (3956 cuadras)
+   VÍA DISTRIBUIDORA PRINCIPAL             4.78     96.91  (3956 cuadras)
    VÍA TRONCAL                             3.29     48.23  (995 cuadras)
-   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.65     26.25  (3965 cuadras)
-   VÍA LOCAL                               0.60      8.23  (23044 cuadras)
+   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.64     26.25  (3965 cuadras)
+   VÍA LOCAL                               0.59      8.23  (23044 cuadras)
    None                                    0.00      0.00  (1 cuadras)
 Las troncales tienen que estar arriba y las vías locales abajo.
 

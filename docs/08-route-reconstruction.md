@@ -11,21 +11,35 @@ reconstruye ese "algo".
 
 No hace falta ordenar las paradas de una línea —dato que el CSV no trae, y que
 es difícil de inferir cuando la línea tiene varios ramales—. Alcanza con unir
-**cada par de paradas cercanas** de la misma línea y sentido por el camino más
-corto sobre la red de calles circulables: las consecutivas están a 200–400 m y
-se unen solas, las de ramales distintos quedan lejos y no se tocan.
+paradas vecinas de la misma línea y sentido por el camino más corto sobre la
+red de calles circulables.
 
-Tres filtros evitan inventar recorridos:
+Cuatro parámetros evitan inventar recorridos:
 
-| Filtro | Valor | Para qué |
+| Parámetro | Valor | Para qué |
 |---|---|---|
+| `NEIGHBOURS_PER_STOP` | 2 | a cuántas vecinas se une cada parada |
 | `PAIR_RADIUS_M` | 500 m | sólo une paradas cercanas en línea recta |
 | `MAX_PATH_M` | 750 m | techo absoluto del camino |
 | `MAX_DETOUR` | 1,8× | techo relativo a la línea recta |
 
-El techo relativo es el que más trabaja. Doblar una esquina da una relación de
-~1,4; rodear una manzana entera da más, y eso ya es señal de que esas dos
-paradas no son consecutivas.
+El techo relativo descarta rodeos: doblar una esquina da una relación de ~1,4;
+rodear una manzana entera da más, y eso ya es señal de que esas dos paradas no
+son consecutivas.
+
+### El parámetro que más importa es el primero
+
+La primera versión unía **todos** los pares dentro del radio. Parece inofensivo
+y no lo es: donde las paradas se amontonan —una línea que zigzaguea, o dos
+tramos suyos a pocas cuadras— genera del orden de n² tramos, y el resultado es
+una **retícula**, no un recorrido. Se veía clarísimo en el mapa: la 145 pintaba
+una malla de seis por cuatro manzanas en Villa Crespo.
+
+Un recorrido es una cadena: cada parada tiene una anterior y una siguiente. Con
+dos vecinas eso se reproduce, y en las bifurcaciones la unión de las cadenas de
+cada rama cubre las dos.
+
+El cambio subió la precisión de **84 % a 89 %** sin tocar el recall.
 
 La red excluye lo que un colectivo no puede transitar: senderos de parque,
 pasajes peatonales y todo lo que el callejero marca con `sentido = PEATONAL`.
@@ -44,11 +58,11 @@ Sobre 117 líneas con más de 100 cuadras atribuidas:
 
 | | |
 |---|---|
-| Precisión mediana | **84 %** |
+| Precisión mediana | **89 %** |
 | Recall mediano | 61 % |
 
-- **Precisión 84 %**: de cada 100 cuadras que la reconstrucción propone, 84 las
-  confirma el GTFS. Y es un piso, no un techo: parte del 16 % restante son
+- **Precisión 89 %**: de cada 100 cuadras que la reconstrucción propone, 89 las
+  confirma el GTFS. Y es un piso, no un techo: parte del 11 % restante son
   cambios de recorrido reales posteriores a 2019. La línea 8 —la que más
   cambió— da 41 % de precisión, que en su caso es lo esperable, no un error.
 - **Recall 61 %**: se pierde el resto porque las paradas son más ralas que el
@@ -57,7 +71,7 @@ Sobre 117 líneas con más de 100 cuadras atribuidas:
 
 ## Se aplica sólo donde hace falta
 
-Con 84 % de precisión, sumarle la reconstrucción a una línea que el GTFS ya
+Con 89 % de precisión, sumarle la reconstrucción a una línea que el GTFS ya
 describe bien sólo puede meter ruido. Así que se aplica **únicamente a las
 líneas que el GTFS 2019 no describe bien**.
 
@@ -81,8 +95,8 @@ Las otras 126 conservan la atribución del GTFS sin tocar.
 | | Antes | Después |
 |---|---|---|
 | Líneas en el mapa | 129 | **137** |
-| Cuadras con al menos una línea | 12.861 | **13.324** |
-| Cuadras de la línea 145 | 152 punteadas | **484 continuas** |
+| Cuadras con al menos una línea | 12.861 | **13.233** |
+| Cuadras de la línea 145 | 152 punteadas | **435 continuas** |
 
 En la página, esas ocho líneas también aparecen en el desplegable: su geometría
 se arma pegando las cuadras del callejero que se les atribuyeron. Se ve menos
@@ -91,7 +105,7 @@ partir de sus paradas"— para no presentarlo como dato duro.
 
 ## Límites
 
-**Es una inferencia.** Uno de cada seis tramos puede estar mal. Para las ocho
+**Es una inferencia.** Uno de cada nueve tramos puede estar mal. Para las ocho
 líneas ausentes del GTFS la alternativa era no tener nada, así que conviene;
 para el resto no se aplica.
 

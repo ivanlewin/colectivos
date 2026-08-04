@@ -14,19 +14,19 @@ Uniendo paradas a menos de 500 m, con camino ≤ 750 m y ≤ 1.8× la recta...
    200/293 combinaciones procesadas
    250/293 combinaciones procesadas
 
-Pares evaluados: 12698, unidos: 12087 (95 %)
+Pares evaluados: 10192, unidos: 9619 (94 %)
 
 ======================================================================
 Resultado
 ======================================================================
-Cuadras con alguna línea reconstruida: 11749
+Cuadras con alguna línea reconstruida: 10840
 
 Las líneas que el GTFS 2019 no tiene, ahora reconstruidas:
-   línea 145:  484 cuadras
-   línea 119:  168 cuadras
-   línea 164:  100 cuadras
-   línea   6:  260 cuadras
-   línea  99:  267 cuadras
+   línea 145:  435 cuadras
+   línea 119:  152 cuadras
+   línea 164:   94 cuadras
+   línea   6:  250 cuadras
+   línea  99:  251 cuadras
    línea   5:    3 cuadras
    línea 112:    1 cuadras
    línea 175:    1 cuadras

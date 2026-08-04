@@ -298,14 +298,19 @@ par de paradas cercanas de la misma línea y sentido por el camino más corto
 sobre la red circulable, con tres topes para no inventar (500 m entre paradas,
 750 m de camino, 1,8× la línea recta).
 
-Medida contra las líneas que el GTFS sí describe bien, la reconstrucción tiene
-**84 % de precisión**. Como es una inferencia y no un dato, se aplica **sólo a
-las 11 líneas que el GTFS 2019 no describe bien** —criterio objetivo: menos del
-70 % de sus paradas cubiertas—. Las otras 126 quedan intactas.
+La primera versión unía todos los pares dentro del radio y el mapa lo delató:
+donde las paradas se amontonan generaba del orden de n² tramos y pintaba una
+**retícula** en vez de un recorrido. Un recorrido es una cadena, así que cada
+parada se une sólo a sus dos vecinas más cercanas. Eso subió la precisión de
+84 % a **89 %** sin perder recall.
+
+Como es una inferencia y no un dato, se aplica **sólo a las 11 líneas que el
+GTFS 2019 no describe bien** —criterio objetivo: menos del 70 % de sus paradas
+cubiertas—. Las otras 126 quedan intactas.
 → [docs/08-route-reconstruction.md](docs/08-route-reconstruction.md)
 
-El mapa pasa a **137 líneas** y 13.324 cuadras con servicio; la 145 de 152
-cuadras punteadas a 484 continuas. Las ocho líneas reconstruidas ya aparecen en
+El mapa pasa a **137 líneas** y 13.233 cuadras con servicio; la 145 de 152
+cuadras punteadas a 435 continuas. Las ocho líneas reconstruidas ya aparecen en
 el desplegable, con un aviso en el panel para no presentarlas como dato duro.
 
 Próximos pasos, en orden:
