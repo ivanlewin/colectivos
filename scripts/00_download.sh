@@ -55,6 +55,17 @@ if want "$TARGET" epok4326; then
         "$DATA/routes_wgs84.json" "GeoJSON, lat/lon"
 fi
 
+# --- Paradas de colectivo de CABA, vigentes ----------------------------------
+# La fuente más actualizada del proyecto: Secretaría de Transporte y Obras
+# Públicas, revisión de junio de 2026. Trae calle, altura y hasta seis líneas
+# por parada, con su sentido. Es más completa que el padrón de EPOK: incluye
+# las líneas 6 y 99, que EPOK no lista.
+if want "$TARGET" stops; then
+  echo "[stops] paradas de colectivo (Buenos Aires Data)"
+  fetch "https://cdn.buenosaires.gob.ar/datosabiertos/datasets/transporte-y-obras-publicas/colectivos-paradas/paradas-de-colectivo.csv" \
+        "$DATA/stops.csv" "CSV, ~0,8 MB"
+fi
+
 # --- Callejero de CABA, un feature por cuadra --------------------------------
 if want "$TARGET" streets; then
   echo "[streets] callejero de CABA (Buenos Aires Data)"

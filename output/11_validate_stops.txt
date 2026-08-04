@@ -1,0 +1,46 @@
+
+======================================================================
+Validación contra las paradas vigentes
+======================================================================
+Paradas vigentes        : 6959
+Líneas en las paradas   : 137
+Líneas en el padrón EPOK: 132
+
+Líneas que están en las paradas y NO en el padrón EPOK: [5, 6, 99, 112, 175]
+El padrón de EPOK no es exhaustivo.
+
+======================================================================
+Resultado
+======================================================================
+Paradas descartadas por estar a más de 30 m de cualquier cuadra: 118
+
+Pares parada-línea evaluados: 11293
+   la cuadra ya tiene esa línea : 10142 (89.8 %)
+   no la tiene                  : 1151 (10.2 %)
+
+======================================================================
+Dónde está el error
+======================================================================
+Líneas ordenadas por paradas sin atribuir:
+
+    línea  faltan     de         causa probable
+      145     167    167   100 %  la línea no existe en el GTFS 2019
+      008     115    216    53 %  el recorrido cambió desde 2019
+      006      91     91   100 %  no está en el padrón EPOK
+      099      88     88   100 %  no está en el padrón EPOK
+      119      56     56   100 %  la línea no existe en el GTFS 2019
+      090      37    153    24 %  el recorrido cambió desde 2019
+      164      36     36   100 %  la línea no existe en el GTFS 2019
+      166      28     79    35 %  el recorrido cambió desde 2019
+      034      24     77    31 %  el recorrido cambió desde 2019
+      118      17     90    19 %  el recorrido cambió desde 2019
+      076      17    151    11 %  el recorrido cambió desde 2019
+      129      16     91    18 %  el recorrido cambió desde 2019
+      028      16    123    13 %  el recorrido cambió desde 2019
+      143      15    106    14 %  el recorrido cambió desde 2019
+      169      14     43    33 %  el recorrido cambió desde 2019
+
+El detalle de cada faltante queda en output/stop_validation.csv
+Todas esas paradas sí están incorporadas al resultado final: el parche
+de 07_attribute_lines.py las agrega. Lo que se mide acá es cuánto
+quedaría afuera si dependiéramos sólo del GTFS de 2019.

@@ -109,6 +109,7 @@ también corre solo:
 | [07_attribute_lines.py](scripts/07_attribute_lines.py) | **Paso A**: qué líneas pasan por cada una de las 31.961 cuadras. |
 | [09_walking_access.py](scripts/09_walking_access.py) | **Paso B**: a cuántas líneas se llega caminando 400 m por la red de calles. |
 | [10_ideal_blocks.py](scripts/10_ideal_blocks.py) | **Paso C**: el índice de cuadra ideal y sus constantes de normalización. |
+| [11_validate_stops.py](scripts/11_validate_stops.py) | ¿Cuánto le erramos? Mide la atribución contra las paradas vigentes. |
 | [08_build_web_data.py](scripts/08_build_web_data.py) | Prepara los GeoJSON que consume la página. Va último. |
 | [serve.sh](scripts/serve.sh) | Levanta la visualización en localhost. |
 | [common.py](scripts/common.py) | Rutas, carga del dataset, CRS y frecuencias del GTFS. |
@@ -259,8 +260,41 @@ Constitución—, que es la respuesta correcta. El peso también discrimina much
 más: antes iba de 3.050 a 1.188 cuadras sobre 60, ahora de 3.050 a 48.
 → [docs/06-ideal-block-index.md](docs/06-ideal-block-index.md)
 
+### 2026-08-03 — Medir el error contra las paradas vigentes
+
+Probando el mapa apareció que por Lerma no pasa ningún colectivo, cuando había
+memoria de líneas que doblan por ahí o por Jufré. El diagnóstico dio que el
+método geométrico estaba bien —cuando un colectivo circula de verdad por una
+calle, la traza está a 0,5–2 m del eje; en Lerma la más cercana estaba a 142 m,
+o sea la paralela— y que el problema era la vigencia del GTFS 2019.
+
+Se incorporó el dataset de **paradas de colectivo** de la Secretaría de
+Transporte, revisión de junio de 2026. Es la única fuente que dice directamente
+qué líneas paran dónde, y resultó **más completa que el padrón de EPOK**: trae
+cinco líneas que EPOK no lista (5, 6, 99, 112, 175).
+
+Con eso el proyecto por fin puede medir su propio error: **89,8 % de acierto**,
+10,2 % de paradas cuya línea no teníamos. El error se concentra en líneas que
+no existen en el GTFS 2019 (145, 119, 164) y en recorridos que cambiaron
+(8, 90, 166, 34). → [docs/07-current-stops.md](docs/07-current-stops.md)
+
+Las paradas se usan además para parchear la atribución: el mapa pasa de 129 a
+**137 líneas** y de 12.861 a 13.038 cuadras con servicio. Jufré 201–300 ahora
+tiene la 145, y Lerma sigue en cero, que es lo correcto — no tiene ninguna
+parada.
+
+Enganchar una parada a su cuadra no era trivial: la de Jufré 210 está a 23 m
+del eje de Julián Álvarez y a 29 m del de Jufré, así que la más cercana es la
+transversal. Se resuelve comparando el nombre de calle que trae la parada, por
+conjuntos de palabras para que `RAUL SCALABRINI ORTIZ AV.` y `SCALABRINI ORTIZ,
+RAUL AV.` sean la misma.
+
 Próximos pasos, en orden:
 
+- [ ] Pasar el Paso B a las paradas vigentes en vez de las del GTFS 2019.
+      Necesita resolver de dónde salen las frecuencias, que ese dataset no trae.
+- [ ] Reconstruir el recorrido de las líneas ausentes del GTFS uniendo sus
+      paradas por el grafo de calles: hoy se ven punteadas, no como traza.
 - [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
       que las cuadras pegadas a la General Paz y al Riachuelo quedan
       subestimadas.

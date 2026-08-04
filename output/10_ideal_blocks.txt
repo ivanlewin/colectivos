@@ -56,7 +56,6 @@ Las 15 mejores cuadras, medido en líneas
 (peso del ruido = 1.0)
 
    100.0  PASAJE   0 encima · 35 a pie   CIUDADELA                    Constitucion
-   100.0  PASAJE   0 encima · 35 a pie   GIORELLO, PABLO              Constitucion
     96.2  PASAJE   0 encima · 25 a pie   BUERAS                       Liniers
     92.3  PASAJE   0 encima · 24 a pie   CASCO                        Liniers
     92.3  PASAJE   0 encima · 24 a pie   LEBENSOHN, MOISES            Nueva Pompeya
@@ -70,6 +69,7 @@ Las 15 mejores cuadras, medido en líneas
     80.8  CALLE P  0 encima · 21 a pie   ESPEJO, GERONIMO, GRAL.      Flores
     80.8  CALLE P  0 encima · 21 a pie   PESCADORES                   Flores
     80.8  CALLE P  0 encima · 21 a pie   SALALA                       Flores
+    80.8  CALLE P  0 encima · 21 a pie   BEADE                        Caballito
 
 ======================================================================
 Las 15 mejores cuadras, medido en colectivos por hora
@@ -77,7 +77,7 @@ Las 15 mejores cuadras, medido en colectivos por hora
 (peso del ruido = 1.0)
 
    100.0  PASAJE   0 encima · 35 a pie   CIUDADELA                    Constitucion
-   100.0  PASAJE   0 encima · 35 a pie   GIORELLO, PABLO              Constitucion
+   100.0  PASAJE   3 encima · 35 a pie   GIORELLO, PABLO              Constitucion
     95.7  PASAJE   0 encima · 24 a pie   KAVANAGH, CORINA             Retiro
     91.8  PASAJE   0 encima · 25 a pie   BUERAS                       Liniers
     86.8  PASAJE   0 encima · 24 a pie   CASCO                        Liniers
@@ -95,14 +95,14 @@ Las 15 mejores cuadras, medido en colectivos por hora
 ======================================================================
 Control: Av. 9 de Julio
 ======================================================================
-70 cuadras, 13 de ellas sin colectivos atribuidos.
+70 cuadras, 12 de ellas sin colectivos atribuidos.
 Ésas eran las que puntuaban como calle tranquila. Ahora:
 
-   23 líneas a pie   sólo colectivos:  88.5   con tránsito:  38.5
    22 líneas a pie   sólo colectivos:  84.6   con tránsito:  34.6
    22 líneas a pie   sólo colectivos:  84.6   con tránsito:  34.6
    21 líneas a pie   sólo colectivos:  80.8   con tránsito:  30.8
    18 líneas a pie   sólo colectivos:  69.2   con tránsito:  19.2
+   16 líneas a pie   sólo colectivos:  61.5   con tránsito:  11.5
 
 ======================================================================
 Sensibilidad al peso del ruido
@@ -110,9 +110,9 @@ Sensibilidad al peso del ruido
 Cuántas cuadras superan 60 puntos, y qué barrios encabezan:
 
    peso 0.0 ->  3050 cuadras sobre 60   | top 40: Retiro, Palermo
-   peso 0.5 ->   938 cuadras sobre 60   | top 40: Retiro, San Nicolas, Constitucion
-   peso 1.0 ->   331 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
-   peso 1.5 ->   152 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
-   peso 2.0 ->    53 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
+   peso 0.5 ->   929 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 1.0 ->   328 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
+   peso 1.5 ->   149 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
+   peso 2.0 ->    52 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
 
 Escrito output/ideal_blocks.csv

@@ -46,6 +46,7 @@ if "$PY" -c "import pyproj" 2>/dev/null; then
   # El 09 y el 10 van antes del 08 porque la página consume su resultado.
   run_step 09_walking_access.py
   run_step 10_ideal_blocks.py
+  run_step 11_validate_stops.py
   run_step 08_build_web_data.py
 else
   echo "==> 03_crs.py y 04_coverage.py salteados: falta pyproj"

@@ -10,6 +10,7 @@ import collections
 import csv
 import json
 import re
+import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -127,3 +128,96 @@ def gtfs_rows(name):
     """Filas de un archivo del GTFS como diccionarios."""
     with (GTFS / name).open(encoding="utf-8") as fh:
         yield from csv.DictReader(fh)
+
+
+# ------------------------------------------------------- paradas vigentes
+
+STOPS_CSV = ROOT / "data" / "stops.csv"
+
+
+def current_stops():
+    """Paradas de colectivo vigentes: [(lon, lat, calle, altura, {(línea, sentido)})].
+
+    Publicado por la Secretaría de Transporte y Obras Públicas, revisión de
+    junio de 2026. Es la fuente más actualizada del proyecto y la única que
+    dice directamente qué líneas paran dónde.
+
+    Trae hasta seis líneas por parada en columnas L1..L6, cada una con su
+    sentido en l1_sen..l6_sen ('I' ida, 'V' vuelta). Las coordenadas vienen
+    con coma decimal.
+    """
+    if not STOPS_CSV.exists():
+        raise SystemExit(
+            f"Falta {STOPS_CSV}. Descargalo con: bash scripts/00_download.sh stops"
+        )
+
+    stops = []
+    with STOPS_CSV.open(encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            try:
+                lon = float(row["coord_X"].replace(",", "."))
+                lat = float(row["coord_Y"].replace(",", "."))
+            except (ValueError, AttributeError):
+                continue
+
+            services = set()
+            for slot in range(1, 7):
+                number = (row.get(f"L{slot}") or "").strip()
+                # Una fila del CSV trae 'V' donde debería ir el número.
+                if not number.isdigit():
+                    continue
+                direction = (row.get(f"l{slot}_sen") or "").strip() or "?"
+                services.add((int(number), direction))
+
+            if services:
+                stops.append((lon, lat, row.get("CALLE", ""),
+                              row.get("ALT PLANO", ""), services))
+    return stops
+
+
+def street_tokens(name):
+    """Nombre de calle normalizado a conjunto de palabras, sin acentos.
+
+    Las dos fuentes escriben el mismo nombre en distinto orden: las paradas
+    dicen "RAUL SCALABRINI ORTIZ AV." y el callejero "SCALABRINI ORTIZ, RAUL
+    AV.". Comparar conjuntos de palabras hace que el orden no importe.
+    """
+    if not name:
+        return frozenset()
+    plain = unicodedata.normalize("NFKD", name.upper())
+    plain = "".join(c for c in plain if not unicodedata.combining(c))
+    return frozenset(t for t in re.split(r"[^A-Z0-9]+", plain) if t)
+
+
+def snap_stop(point, tree, geometries, names, street, max_distance=45):
+    """Índice de la cuadra a la que corresponde una parada, o None.
+
+    La cuadra más cercana no siempre es la correcta: una parada cerca de la
+    esquina puede quedar más cerca del eje de la transversal que del de su
+    propia calle. La parada de Jufré 210, por ejemplo, está a 23 m de Julián
+    Álvarez y a 29 m de Jufré.
+
+    Por eso se prefiere, entre las cuadras del entorno, la más cercana que
+    además *se llame igual* que la calle declarada por la parada. Si ninguna
+    coincide por nombre, se cae a la más cercana a secas.
+    """
+    candidates = tree.query(point, predicate="dwithin", distance=max_distance)
+    if not len(candidates):
+        return None
+    candidates = sorted(candidates, key=lambda i: point.distance(geometries[i]))
+    for index in candidates:
+        if same_street(street, names[index]):
+            return index
+    return candidates[0]
+
+
+def same_street(a, b, threshold=0.6):
+    """Si dos nombres de calle designan la misma calle.
+
+    Jaccard sobre las palabras: tolera "AV.", comas y orden distinto, pero no
+    confunde calles diferentes.
+    """
+    x, y = street_tokens(a), street_tokens(b)
+    if not x or not y:
+        return False
+    return len(x & y) / len(x | y) >= threshold

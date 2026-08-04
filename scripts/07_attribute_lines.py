@@ -65,6 +65,10 @@ INTERSECTION_SKIP_M = 15
 # no que apenas roce la cuadra.
 MIN_SAMPLE_RATIO = 0.6
 
+# Distancia máxima de una parada vigente a la cuadra a la que se la asigna.
+# Una parada está sobre la vereda, así que media calzada de margen alcanza.
+STOP_SNAP_M = 30
+
 
 def epok_line_roster():
     """Números de línea del padrón vigente de EPOK."""
@@ -134,6 +138,33 @@ def load_shape_segments(project, service):
     return geoms, np.array(bearings), np.array(lines), shape_ids
 
 
+def stops_to_blocks(block_geometries, block_ids, block_names, to_metric):
+    """{id de cuadra: {líneas con parada ahí}} según las paradas vigentes.
+
+    Corrige el punto ciego del método geométrico: éste sólo puede encontrar
+    líneas que existan en el GTFS de 2019. Las que se crearon o cambiaron
+    después son invisibles por más fino que se afine el matcheo.
+
+    Una parada es evidencia directa e independiente: si hay una parada de la
+    145 en Jufré 210, la 145 pasa por esa cuadra. Sólo alcanza a las cuadras
+    *con* parada —entre parada y parada el recorrido sigue sin conocerse— así
+    que es un piso, no una solución completa.
+    """
+    from shapely import STRtree
+    from shapely.geometry import Point
+
+    tree = STRtree(block_geometries)
+    by_block = collections.defaultdict(set)
+    for lon, lat, street, _number, services in common.current_stops():
+        x, y = to_metric.transform(lon, lat)
+        index = common.snap_stop(Point(x, y), tree, block_geometries,
+                                 block_names, street, STOP_SNAP_M)
+        if index is None:
+            continue
+        by_block[block_ids[index]].update(line for line, _sentido in services)
+    return by_block
+
+
 def sample_block(coords):
     """Muestrea una cuadra ya proyectada: devuelve [(x, y, rumbo), ...].
 
@@ -195,6 +226,22 @@ def main():
 
     blocks = json.loads(STREETS.read_text(encoding="utf-8"))["features"]
     print(f"Cuadras del callejero      : {len(blocks)}")
+
+    # Geometrías de las cuadras, para enganchar las paradas vigentes.
+    block_geometries, block_ids, block_names = [], [], []
+    for feature in blocks:
+        coords = feature["geometry"]["coordinates"]
+        xs, ys = project([c[0] for c in coords], [c[1] for c in coords])
+        block_geometries.append(LineString(list(zip(xs, ys))))
+        block_ids.append(feature["properties"]["id"])
+        block_names.append(feature["properties"]["nomoficial"])
+
+    stops_by_block = stops_to_blocks(block_geometries, block_ids,
+                                     block_names, to_metric)
+    stop_lines = {line for lines in stops_by_block.values() for line in lines}
+    print(f"Cuadras con parada vigente : {len(stops_by_block)} "
+          f"({len(stop_lines)} líneas distintas)")
+
     print(f"\nParámetros: {MATCH_DISTANCE_M} m de distancia, "
           f"{BEARING_TOLERANCE_DEG}° de rumbo, muestreo cada {SAMPLE_STEP_M} m,")
     print(f"ignorando {INTERSECTION_SKIP_M} m en cada esquina, "
@@ -235,8 +282,14 @@ def main():
 
         # Las líneas se cuentan una vez aunque pasen varios ramales; los
         # colectivos por hora se suman, porque cada ramal son buses distintos.
-        lines_here = sorted({service[s][0] for s in matched_shapes})
+        lines_here = {service[s][0] for s in matched_shapes}
         buses_here = sum(service[s][1] for s in matched_shapes)
+
+        # Si hay una parada vigente de una línea sobre esta cuadra, la línea
+        # pasa por acá, diga lo que diga el GTFS de 2019. Ver stops_by_block().
+        from_stops = stops_by_block.get(props["id"], set())
+        lines_gtfs = sorted(lines_here)
+        lines_here = sorted(lines_here | from_stops)
 
         rows.append({
             "block_id": props["id"],
@@ -247,6 +300,11 @@ def main():
             "length_m": round(props["long"], 1),
             "n_lines": len(lines_here),
             "lines": " ".join(f"{n:03d}" for n in lines_here),
+            # Sólo lo que encontró el método geométrico sobre el GTFS 2019,
+            # sin el parche de las paradas. Lo usa 11_validate_stops.py: si
+            # validara contra la columna parcheada, se estaría midiendo a sí
+            # mismo y daría 100 % siempre.
+            "lines_gtfs": " ".join(f"{n:03d}" for n in lines_gtfs),
             "n_shapes": len(matched_shapes),
             "buses_hour": round(buses_here, 1),
         })
