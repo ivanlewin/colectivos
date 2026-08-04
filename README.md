@@ -313,14 +313,31 @@ El mapa pasa a **137 líneas** y 13.233 cuadras con servicio; la 145 de 152
 cuadras punteadas a 435 continuas. Las ocho líneas reconstruidas ya aparecen en
 el desplegable, con un aviso en el panel para no presentarlas como dato duro.
 
-Próximos pasos, en orden:
+### 2026-08-03 — La red a las 22:00 y los domingos, y la vista por barrio
 
-- [ ] Pasar el Paso B a las paradas vigentes en vez de las del GTFS 2019.
-      Necesita resolver de dónde salen las frecuencias, que ese dataset no trae.
-- [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
-      que las cuadras pegadas a la General Paz y al Riachuelo quedan
-      subestimadas.
-- [ ] Permitir cambiar la hora de referencia: hoy son las 08:00 de un día hábil,
-      fijas en una constante.
-- [ ] Agregar los barrios como capa agregada: 49 polígonos comunican mucho
-      mejor que 31.961 cuadras.
+Se cerraron los tres pendientes que quedaban.
+
+**El momento de referencia se elige en la página.** Un solo instante escondía lo
+más interesante: la red **se parte al medio** fuera del pico. De 4.903
+colectivos por hora en un día hábil a las 08:00 se pasa a 2.468 a las 22:00 y
+2.393 un domingo al mediodía. Y no es que el colectivo deje de pasar —la
+cantidad de cuadras con servicio casi no cambia— sino que pasa la mitad de
+seguido. → [docs/05-service-frequency.md](docs/05-service-frequency.md)
+
+**La capa por barrio.** 48 polígonos se leen de un vistazo y 31.961 cuadras no.
+Con sus propios cortes, porque los promedios viven en otro rango: 2,4 líneas
+contra 29.
+
+**El sesgo de borde no se pudo arreglar**, y quedó medido en vez de pendiente.
+Se probó completar las paradas de CABA con las del GTFS de afuera: de 30.802
+paradas foráneas, **ninguna** quedó a menos de 60 m de una calle porteña y
+**cero cuadras** ganaron una línea. El problema no son las paradas sino que el
+callejero termina en el límite de la Ciudad. Arreglarlo necesita una red de
+calles del conurbano que el proyecto no tiene.
+
+Lo que podría seguir:
+
+- [ ] Conseguir una red de calles del conurbano para cerrar el sesgo de borde.
+- [ ] Hacer ajustable el radio de caminata, hoy fijo en 400 m.
+- [ ] Detectar los *sobrantes*: si el GTFS dice que una línea pasa por una calle
+      de la que ya se fue, ninguna fuente actual lo desmiente.

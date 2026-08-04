@@ -78,12 +78,27 @@ def heading(text):
 
 GTFS = ROOT / "data" / "gtfs_frequency"
 
-# Momento de referencia para medir el servicio: un día hábil a las 08:00.
-# El GTFS modela el servicio por franjas con una frecuencia cada una, así que
-# hay que pararse en un instante concreto. A las 08:00 está activo el 96 % de
-# los trips de día hábil, que es el máximo del día.
-PEAK_SERVICE_ID = "HI"    # HI = hábil, SI = sábado, DI = domingo, FI = feriado
-PEAK_SECONDS = 8 * 3600
+# Momentos de referencia para medir el servicio.
+#
+# El GTFS modela el servicio por franjas horarias con una frecuencia cada una,
+# así que "cuántos colectivos pasan" sólo tiene sentido parado en un instante
+# concreto. Un solo instante, además, esconde lo más interesante: cuánta red se
+# apaga de noche y los domingos.
+#
+# El sufijo es el que llevan las columnas de los CSV y las propiedades de los
+# GeoJSON. El momento por defecto va sin sufijo, así nada de lo anterior se
+# rompe al agregar los otros.
+#
+#   HI = hábil, SI = sábado, DI = domingo, FI = feriado
+MOMENTS = {
+    "habil-08":   {"service": "HI", "seconds": 8 * 3600,  "suffix": "",
+                   "label": "día hábil, 08:00"},
+    "habil-22":   {"service": "HI", "seconds": 22 * 3600, "suffix": "_n",
+                   "label": "día hábil, 22:00"},
+    "domingo-12": {"service": "DI", "seconds": 12 * 3600, "suffix": "_d",
+                   "label": "domingo, 12:00"},
+}
+DEFAULT_MOMENT = "habil-08"
 
 
 def line_number(short_name):
@@ -97,12 +112,14 @@ def _seconds(clock):
     return hours * 3600 + minutes * 60 + seconds
 
 
-def buses_per_hour_by_trip():
-    """{trip_id: colectivos por hora} en el momento de referencia.
+def buses_per_hour_by_trip(moment=DEFAULT_MOMENT):
+    """{trip_id: colectivos por hora} en el momento pedido.
 
-    Sólo trips del servicio de día hábil. Un trip sin franja activa a esa hora
-    queda afuera: ese servicio no está circulando.
+    Un trip cuyo servicio no corre ese día, o que no tiene franja activa a esa
+    hora, queda afuera: no está circulando.
     """
+    spec = MOMENTS[moment]
+
     windows = collections.defaultdict(list)
     with (GTFS / "frequencies.txt").open(encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
@@ -115,10 +132,10 @@ def buses_per_hour_by_trip():
     per_trip = {}
     with (GTFS / "trips.txt").open(encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            if row["service_id"] != PEAK_SERVICE_ID:
+            if row["service_id"] != spec["service"]:
                 continue
             for start, end, headway in windows.get(row["trip_id"], ()):
-                if start <= PEAK_SECONDS < end and headway:
+                if start <= spec["seconds"] < end and headway:
                     per_trip[row["trip_id"]] = 3600 / headway
                     break
     return per_trip

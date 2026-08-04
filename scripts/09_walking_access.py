@@ -74,16 +74,22 @@ def buses_per_hour_by_service(by_service):
         row["route_id"]: common.line_number(row["route_short_name"])
         for row in common.gtfs_rows("routes.txt")
     }
-    per_trip = common.buses_per_hour_by_trip()
-    by_line = collections.Counter()
+    per_trip = {m: common.buses_per_hour_by_trip(m) for m in common.MOMENTS}
+
+    by_line = collections.defaultdict(collections.Counter)
     for row in common.gtfs_rows("trips.txt"):
         line = route_line.get(row["route_id"])
-        if line is not None:
-            by_line[line] += per_trip.get(row["trip_id"], 0.0)
+        if line is None:
+            continue
+        for moment, table in per_trip.items():
+            by_line[line][moment] += table.get(row["trip_id"], 0.0)
 
     directions = collections.Counter(line for line, _ in by_service)
     return {
-        (line, direction): by_line.get(line, 0.0) / directions[line]
+        (line, direction): {
+            moment: by_line[line][moment] / directions[line]
+            for moment in common.MOMENTS
+        }
         for line, direction in by_service
     }
 
@@ -226,7 +232,7 @@ def main():
     # colectivos por hora se suman, porque ida y vuelta son servicios
     # distintos y alcanzar los dos vale más que alcanzar uno.
     lines_per_block = collections.defaultdict(set)
-    buses_per_block = collections.Counter()
+    buses_per_block = collections.defaultdict(collections.Counter)
     stops_near = collections.Counter()
 
     print(f"\nCalculando alcance a {WALK_RADIUS_M} m por línea y sentido...")
@@ -244,7 +250,7 @@ def main():
         for block_id, node_a, node_b in graph.blocks:
             if node_a in reached or node_b in reached:
                 lines_per_block[block_id].add(line)
-                buses_per_block[block_id] += frequency
+                buses_per_block[block_id].update(frequency)
         if count % 50 == 0:
             print(f"   {count}/{len(by_service)} combinaciones procesadas")
 
@@ -280,8 +286,12 @@ def main():
             "lines_on": source.get("lines", ""),
             "n_lines_walk": len(walkable),
             "lines_walk": " ".join(f"{n:03d}" for n in walkable),
-            "buses_hour_walk": round(buses_per_block.get(block_id, 0.0), 1),
-            "buses_hour_on": float(source.get("buses_hour", 0) or 0),
+            **{f"buses_hour_walk{spec['suffix']}":
+               round(buses_per_block[block_id][moment], 1)
+               for moment, spec in common.MOMENTS.items()},
+            **{f"buses_hour_on{spec['suffix']}":
+               float(source.get(f"buses_hour{spec['suffix']}", 0) or 0)
+               for moment, spec in common.MOMENTS.items()},
             "n_stops_walk": stops_near.get(node_a, 0) + stops_near.get(node_b, 0),
         })
 

@@ -113,7 +113,7 @@ def shape_service(roster):
         if common.line_number(row["route_short_name"]) in roster
     }
 
-    per_trip = common.buses_per_hour_by_trip()
+    per_trip = {m: common.buses_per_hour_by_trip(m) for m in common.MOMENTS}
 
     service = {}
     for row in common.gtfs_rows("trips.txt"):
@@ -121,8 +121,10 @@ def shape_service(roster):
         shape_id = row.get("shape_id")
         if number is None or not shape_id:
             continue
-        line, buses = service.get(shape_id, (number, 0.0))
-        service[shape_id] = (line, buses + per_trip.get(row["trip_id"], 0.0))
+        line, buses = service.get(shape_id, (number, collections.Counter()))
+        for moment, table in per_trip.items():
+            buses[moment] += table.get(row["trip_id"], 0.0)
+        service[shape_id] = (line, buses)
     return service
 
 
@@ -299,8 +301,9 @@ def main():
     print(f"Trazas (ramales)           : {len(shape_ids)}")
     print(f"Segmentos de traza GTFS    : {len(geoms)}")
     print(f"Líneas con traza           : {len({v[0] for v in service.values()})}")
-    print(f"Colectivos/hora en la red  : "
-          f"{sum(v[1] for v in service.values()):.0f} (día hábil, 08:00)")
+    for moment, spec in common.MOMENTS.items():
+        total = sum(v[1][moment] for v in service.values())
+        print(f"Colectivos/hora en la red  : {total:7.0f}   {spec['label']}")
 
     tree = STRtree(geoms)
 
@@ -363,7 +366,9 @@ def main():
         # Las líneas se cuentan una vez aunque pasen varios ramales; los
         # colectivos por hora se suman, porque cada ramal son buses distintos.
         lines_here = {service[s][0] for s in matched_shapes}
-        buses_here = sum(service[s][1] for s in matched_shapes)
+        buses_here = collections.Counter()
+        for shape_id in matched_shapes:
+            buses_here.update(service[shape_id][1])
 
         rows.append({
             "block_id": props["id"],
@@ -373,7 +378,8 @@ def main():
             "red_jerarq": props["red_jerarq"],
             "length_m": round(props["long"], 1),
             "n_shapes": len(matched_shapes),
-            "buses_hour": round(buses_here, 1),
+            **{f"buses_hour{spec['suffix']}": round(buses_here[moment], 1)
+               for moment, spec in common.MOMENTS.items()},
             # Sólo lo que encontró el método geométrico sobre el GTFS 2019.
             # Las correcciones con datos vigentes se aplican después, en
             # merge_current_data(), para poder medir una contra la otra.
@@ -409,9 +415,9 @@ def main():
     for n in sorted(counts)[:12]:
         print(f"   {n:2d} líneas: {counts[n]:6d} cuadras")
 
-    buses = [r["buses_hour"] for r in rows if r["buses_hour"] > 0]
+    buses = [r["buses_hour"] for r in rows if r["buses_hour"] > 0]  # momento por defecto
     buses.sort()
-    print(f"\nColectivos por hora (día hábil, 08:00), en las cuadras que tienen:")
+    print(f"\nColectivos por hora ({common.MOMENTS[common.DEFAULT_MOMENT]['label']}), en las cuadras que tienen:")
     print(f"   mediana : {buses[len(buses) // 2]:.1f}")
     print(f"   p90     : {buses[int(len(buses) * 0.9)]:.1f}")
     print(f"   máximo  : {buses[-1]:.1f}")

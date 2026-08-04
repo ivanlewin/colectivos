@@ -17,16 +17,15 @@ trip_id,start_time,end_time,headway_secs,exact_times
 ```
 
 Para tener un número comparable hay que pararse en un instante concreto. El
-proyecto usa **un día hábil a las 08:00**, definido en
-[`scripts/common.py`](../scripts/common.py):
+por defecto es **un día hábil a las 08:00**, cuando está activo el 96 % de los
+trips del día —el máximo—. El calendario tiene `HI` hábil, `SI` sábado, `DI`
+domingo y `FI` feriado.
 
-- `service_id = HI` (el calendario tiene `HI` hábil, `SI` sábado, `DI` domingo,
-  `FI` feriado).
-- A las 08:00 está activo el 96 % de los trips de día hábil, el máximo del día.
-  A las 22:00 baja al 71 %.
+Con eso, `colectivos por hora = 3600 / headway_secs` de la franja que cubre ese
+instante. En total, **4.903 colectivos por hora** de las líneas que sirven a la
+Ciudad.
 
-Con eso, `colectivos por hora = 3600 / headway_secs` de la franja que cubre las
-08:00. En total, **7.799 colectivos por hora** circulando en la red.
+Hay otros dos momentos para comparar; ver [Límites](#límites) más abajo.
 
 ## Por qué se atribuye por ramal y no por línea
 
@@ -45,9 +44,10 @@ Entonces:
 - **Los colectivos por hora se suman**, porque cada ramal son servicios
   distintos: son colectivos que realmente pasan.
 
-Lo mismo en el [Paso B](04-walking-access.md): el Dijkstra se corre por ramal
-—unos 500 en vez de 129— y una cuadra suma la frecuencia de cada ramal que
-alcanza a pie.
+En el [Paso B](04-walking-access.md) la granularidad la fija la fuente: las
+paradas vigentes traen línea y sentido, así que el Dijkstra corre por cada
+combinación —293— y una cuadra suma la frecuencia de cada sentido que alcanza a
+pie.
 
 Las dos direcciones se suman también. Para el ruido es lo correcto: un colectivo
 que pasa por la ventana molesta vaya para donde vaya.
@@ -104,9 +104,29 @@ la Ciudad.
 
 ## Límites
 
-**Es un instante, no un promedio.** Las 08:00 de un día hábil. Un servicio que
-sólo corre de noche o los fines de semana no aparece. Cambiar la hora de
-referencia es cambiar una constante en `common.py`.
+**Es un instante, no un promedio** — pero ahora hay tres para elegir.
+
+Un solo instante escondía lo más interesante: cuánta red se apaga fuera del
+pico. Los tres momentos están definidos en `MOMENTS`, dentro de
+[`common.py`](../scripts/common.py), y se calculan todos en la misma corrida:
+
+| Momento | Servicio | Colectivos/hora en la red |
+|---|---|---|
+| Día hábil, 08:00 | `HI` | **4.903** |
+| Día hábil, 22:00 | `HI` | 2.468 |
+| Domingo, 12:00 | `DI` | 2.393 |
+
+**La red se parte al medio** de noche y los domingos. Se ve de un vistazo en el
+mapa: con el selector en 22:00 los corredores adelgazan y la trama secundaria
+casi desaparece.
+
+El promedio de colectivos por hora en las cuadras que tienen servicio baja de
+57 a 30. La cantidad de cuadras con algún servicio casi no cambia (13.050 a
+12.708): no es que el colectivo deje de pasar, es que pasa la mitad de seguido.
+
+El momento por defecto va sin sufijo en los datos y los otros con `_n` y `_d`,
+así que agregar momentos no rompe nada de lo anterior. La cantidad de líneas no
+depende de la hora, así que el selector sólo aparece midiendo en frecuencia.
 
 **Los trips sin franja activa a esa hora quedan en cero**, no excluidos: si una
 línea no circula a las 08:00, su aporte a esa cuadra es 0 pero la línea se sigue

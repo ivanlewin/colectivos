@@ -186,7 +186,7 @@
     background: var(--surface);
     border: 1px solid var(--border); border-radius: 4px;
   }
-  #weight-field[hidden] { display: none; }
+  #weight-field[hidden], #moment-field[hidden] { display: none; }
   #weight-field b { color: var(--ink); font-variant-numeric: tabular-nums; }
   #weight { width: 100%; margin: 2px 0 0; accent-color: var(--pick); }
 
@@ -330,6 +330,14 @@
           <option value="buses">Colectivos por hora</option>
         </select>
       </label>
+      <label id="moment-field">
+        Momento
+        <select id="moment">
+          <option value="">Día hábil, 08:00</option>
+          <option value="_n">Día hábil, 22:00</option>
+          <option value="_d">Domingo, 12:00</option>
+        </select>
+      </label>
       <label>
         Detalle
         <select id="grain">
@@ -402,8 +410,8 @@ let noiseWeight = 1.0;
 // devuelven -1 y caen en la clase neutra, fuera del ranking.
 function indexExpression(metric) {
   const norm = NORM[metric];
-  const access = metric === 'lines' ? 'nw' : 'bw';
-  const noise = metric === 'lines' ? 'n' : 'bh';
+  const access = metric === 'lines' ? 'nw' : busProp('bw');
+  const noise = metric === 'lines' ? 'n' : busProp('bh');
   const normalized = (prop, by) => ['min', 1, ['/', ['get', prop], by]];
   return ['case',
     ['!', ['get', 'r']], -1,
@@ -422,7 +430,7 @@ const VIEWS = {
     caption: 'Líneas que pasan por la cuadra',
   },
   'on-buses': {
-    value: () => ['get', 'bh'], none: 'ninguno',
+    value: () => ['get', busProp('bh')], none: 'ninguno',
     breaks: [1, 25, 75, 150],
     labels: ['1 a 24', '25 a 74', '75 a 149', '150 o más'],
     caption: 'Colectivos por hora que pasan por la cuadra',
@@ -434,7 +442,7 @@ const VIEWS = {
     caption: 'Líneas que se toman caminando 400 m',
   },
   'walk-buses': {
-    value: () => ['get', 'bw'], none: 'ninguno',
+    value: () => ['get', busProp('bw')], none: 'ninguno',
     breaks: [1, 100, 200, 400],
     labels: ['1 a 99', '100 a 199', '200 a 399', '400 o más'],
     caption: 'Colectivos por hora a 400 m caminando',
@@ -456,8 +464,18 @@ const VIEWS = {
 let layerMode = 'on';       // 'on' = pasa por la cuadra | 'walk' = a pie | 'index'
 let metricMode = 'lines';   // 'lines' | 'buses'
 let grain = 'block';        // 'block' = por cuadra | 'barrio' = promedio del barrio
+
+// Sufijo del momento de referencia: '' día hábil 08:00, '_n' hábil 22:00,
+// '_d' domingo 12:00. Sólo afecta a los colectivos por hora — la cantidad de
+// líneas que pasan por una cuadra no cambia con la hora, lo que cambia es
+// cuántas están circulando.
+let moment = '';
+
 const view = () => VIEWS[`${layerMode}-${metricMode}`];
 const onBarrios = () => grain === 'barrio';
+
+// Nombre de la propiedad de frecuencia según el momento elegido.
+const busProp = base => base + moment;
 
 // Los promedios por barrio viven en un rango mucho más chico que los valores
 // por cuadra —2,4 líneas contra 29—, así que necesitan sus propios cortes. Los
@@ -470,7 +488,7 @@ function activeBreaks() {
   if (!onBarrios() || layerMode === 'index' || !BARRIO_BREAKS) return v.breaks;
   const prop = metricMode === 'lines'
     ? (layerMode === 'on' ? 'n' : 'nw')
-    : (layerMode === 'on' ? 'bh' : 'bw');
+    : busProp(layerMode === 'on' ? 'bh' : 'bw');
   return [0.0001, ...(BARRIO_BREAKS[prop] || [])];
 }
 
@@ -692,10 +710,10 @@ map.on('load', async () => {
       <div class="pop-meta">${p.b || 'sin barrio asignado'} · ${p.t.toLowerCase()}</div>
       ${lines
         ? `<div class="pop-lines">Por acá pasan <b>${p.n}</b> ` +
-          `${p.n === 1 ? 'línea' : 'líneas'}, <b>${p.bh}</b> col/hora<br>${lines}</div>`
+          `${p.n === 1 ? 'línea' : 'líneas'}, <b>${p[busProp('bh')]}</b> col/hora<br>${lines}</div>`
         : '<div class="pop-none">No pasa ningún colectivo</div>'}
       <div class="pop-lines pop-walk">A pie: <b>${p.nw}</b> ` +
-        `${p.nw === 1 ? 'línea' : 'líneas'}, <b>${p.bw}</b> col/hora</div>
+        `${p.nw === 1 ? 'línea' : 'líneas'}, <b>${p[busProp('bw')]}</b> col/hora</div>
       ${layerMode === 'index'
         ? `<div class="pop-lines">Índice de cuadra ideal: ` +
           `<b>${Math.round(blockScore(p, metricMode))}</b> sobre 100</div>`
@@ -715,9 +733,9 @@ map.on('load', async () => {
         <div class="pop-street">${p.s}</div>
         <div class="pop-meta">${p.cuadras} cuadras · promedios</div>
         <div class="pop-lines">Por la cuadra: <b>${decimal(p.n)}</b> líneas,
-          <b>${Math.round(p.bh)}</b> col/hora</div>
+          <b>${Math.round(p[busProp('bh')])}</b> col/hora</div>
         <div class="pop-lines pop-walk">A pie: <b>${decimal(p.nw)}</b> líneas,
-          <b>${Math.round(p.bw)}</b> col/hora</div>
+          <b>${Math.round(p[busProp('bw')])}</b> col/hora</div>
         ${layerMode === 'index'
           ? `<div class="pop-lines">Índice: <b>` +
             `${Math.round(blockScore(p, metricMode))}</b> sobre 100</div>`
@@ -920,8 +938,8 @@ const rankingList = document.getElementById('ranking-list');
 function blockScore(block, metric) {
   if (!block.r) return -1;
   const norm = NORM[metric];
-  const access = metric === 'lines' ? block.nw : block.bw;
-  const noise = metric === 'lines' ? block.n : block.bh;
+  const access = metric === 'lines' ? block.nw : block[busProp('bw')];
+  const noise = metric === 'lines' ? block.n : block[busProp('bh')];
   return Math.max(0,
     Math.min(1, access / norm.access)
       - noiseWeight * Math.max(Math.min(1, noise / norm.noise), block.tf)) * 100;
@@ -934,7 +952,7 @@ function buildRanking() {
   if (!source.length) return;
   document.getElementById('ranking-title').textContent =
     onBarrios() ? 'Los mejores barrios' : 'Las mejores cuadras';
-  const access = b => (metricMode === 'lines' ? b.nw : b.bw);
+  const access = b => (metricMode === 'lines' ? b.nw : b[busProp('bw')]);
 
   // Muchas cuadras empatan arriba en el puntaje máximo, así que se desempata
   // por acceso crudo y se muestra una sola cuadra por calle y barrio: doce
@@ -998,6 +1016,9 @@ function applyView() {
   const isIndex = layerMode === 'index';
   weightField.hidden = !isIndex;
   ranking.hidden = !isIndex;
+  // La cantidad de líneas que pasan por una cuadra no cambia con la hora, así
+  // que el selector de momento sólo tiene sentido midiendo en frecuencia.
+  document.getElementById('moment-field').hidden = metricMode !== 'buses';
   if (isIndex) buildRanking();
 }
 
@@ -1005,6 +1026,7 @@ for (const [id, apply] of [
   ['layer-mode',  value => { layerMode = value; }],
   ['metric-mode', value => { metricMode = value; }],
   ['grain',       value => { grain = value; }],
+  ['moment',      value => { moment = value; }],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
     apply(event.target.value);

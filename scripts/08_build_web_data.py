@@ -39,6 +39,9 @@ PRECISION = 5
 # puntos de una recta son redundantes.
 SIMPLIFY_DEG = 0.0001
 
+# Sufijos de los momentos de referencia. El de por defecto va sin sufijo.
+MOMENT_SUFFIXES = [spec["suffix"] for spec in common.MOMENTS.values()]
+
 # El ruido de tránsito y qué cuadras tienen domicilios salen de la misma tabla
 # que usa el índice. Se importan de allá para que no haya dos verdades.
 from importlib import import_module
@@ -117,12 +120,16 @@ def build_blocks():
             "type": "Feature",
             "geometry": round_coords(feature["geometry"]),
             "properties": {
-                # Pasan por la cuadra.
+                # Pasan por la cuadra. La cantidad de líneas no depende de la
+                # hora; los colectivos por hora sí, así que van los tres
+                # momentos, con sufijo salvo el de referencia.
                 "n": int(row["n_lines"]),
-                "bh": round(float(row["buses_hour"])),
+                **{f"bh{s}": round(float(row[f"buses_hour{s}"]))
+                   for s in MOMENT_SUFFIXES},
                 # Se toman a pie, a 400 m por la red de calles.
                 "nw": int(walk.get("n_lines_walk", 0)),
-                "bw": round(float(walk.get("buses_hour_walk", 0) or 0)),
+                **{f"bw{s}": round(float(walk.get(f"buses_hour_walk{s}", 0) or 0))
+                   for s in MOMENT_SUFFIXES},
                 # Identificación.
                 "s": props["nom_mapa"] or props["nomoficial"],
                 "a": house_range(props),
@@ -217,6 +224,11 @@ def build_routes():
     return {"type": "FeatureCollection", "features": features}
 
 
+BARRIO_KEYS = (["n", "nw", "tf"]
+               + [f"bh{s}" for s in MOMENT_SUFFIXES]
+               + [f"bw{s}" for s in MOMENT_SUFFIXES])
+
+
 def build_barrios(blocks):
     """Los 48 barrios con el promedio de sus cuadras.
 
@@ -238,7 +250,7 @@ def build_barrios(blocks):
         if not props["b"] or not props["r"]:
             continue
         counts[props["b"]] += 1
-        for key in ("n", "bh", "nw", "bw", "tf"):
+        for key in BARRIO_KEYS:
             totals[props["b"]][key] += props[key]
 
     features = []
@@ -247,7 +259,7 @@ def build_barrios(blocks):
         blocks_here = counts.get(name, 0)
         if not blocks_here:
             continue
-        mean = {k: totals[name][k] / blocks_here for k in ("n", "bh", "nw", "bw", "tf")}
+        mean = {k: totals[name][k] / blocks_here for k in BARRIO_KEYS}
         centre = shape(feature["geometry"]).representative_point()
         features.append({
             "type": "Feature",
@@ -262,10 +274,10 @@ def build_barrios(blocks):
                 "c": [round(centre.x, 5), round(centre.y, 5)],
                 "r": True,
                 "n": round(mean["n"], 2),
-                "bh": round(mean["bh"], 1),
                 "nw": round(mean["nw"], 2),
-                "bw": round(mean["bw"], 1),
                 "tf": round(mean["tf"], 3),
+                **{f"bh{s}": round(mean[f"bh{s}"], 1) for s in MOMENT_SUFFIXES},
+                **{f"bw{s}": round(mean[f"bw{s}"], 1) for s in MOMENT_SUFFIXES},
             },
         })
     return {"type": "FeatureCollection", "features": features}
@@ -336,7 +348,8 @@ def main():
             # Cortes propios para la capa de barrios, en cuartiles.
             norm["barrio_breaks"] = {
                 key: quantile_breaks([f["properties"][key] for f in barrios["features"]])
-                for key in ("n", "bh", "nw", "bw")
+                for key in ["n", "nw"] + [f"bh{s}" for s in MOMENT_SUFFIXES]
+                                       + [f"bw{s}" for s in MOMENT_SUFFIXES]
             }
         (WEB_DATA / "norm.json").write_text(json.dumps(norm, indent=2), encoding="utf-8")
         print("norm.json         constantes del índice y cortes por barrio")
