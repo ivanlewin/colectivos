@@ -1,0 +1,80 @@
+/* Tokens compartidos por el mapa y la página de documentación.
+ *
+ * Vive aparte para que las dos páginas usen literalmente los mismos valores:
+ * si la paleta se duplicara, tarde o temprano una de las dos quedaría vieja.
+ *
+ * Los valores oscuros van declarados dos veces a propósito: el media query
+ * cubre la preferencia del sistema, y el scope [data-theme] cubre la elección
+ * explícita del botón, que tiene que poder ganarle en los dos sentidos. El
+ * :not() deja que un "claro" explícito le gane al sistema oscuro; el :where()
+ * mantiene el media query por debajo en especificidad.
+ */
+
+:root {
+  color-scheme: light;
+  --surface:    #fcfcfb;
+  --plane:      #f9f9f7;
+  --ink:        #0b0b0b;
+  --ink-2:      #52514e;
+  --ink-muted:  #898781;
+  --border:     rgba(11, 11, 11, 0.10);
+  --hover:      rgba(11, 11, 11, 0.05);
+  /* "Ninguna" es un estado, no el escalón más bajo de una magnitud: va en un
+     neutro fuera de la rampa, para que no se lea como "unas pocas líneas". */
+  --n0: #c3c2b7;
+  /* Los cuatro escalones de magnitud: una sola tonalidad, claro -> oscuro. */
+  --n1: #86b6ef;  --n2: #3987e5;  --n3: #1c5cab;  --n4: #0d366b;
+  /* Líneas seleccionadas. Separado de toda la rampa (ΔE CVD 24,7). */
+  --pick: #eb6834;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface:   #1a1a19;
+    --plane:     #0d0d0d;
+    --ink:       #ffffff;
+    --ink-2:     #c3c2b7;
+    --ink-muted: #898781;
+    --border:    rgba(255, 255, 255, 0.10);
+    --hover:     rgba(255, 255, 255, 0.07);
+    --n0: #52514e;
+    --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
+    --pick: #d95926;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface:   #1a1a19;
+  --plane:     #0d0d0d;
+  --ink:       #ffffff;
+  --ink-2:     #c3c2b7;
+  --ink-muted: #898781;
+  --border:    rgba(255, 255, 255, 0.10);
+  --hover:     rgba(255, 255, 255, 0.07);
+  --n0: #52514e;
+  --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
+  --pick: #d95926;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--plane);
+}
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* Botón de tema, igual en las dos páginas. */
+.theme-btn {
+  flex: none;
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  color: var(--ink-2);
+  background: none; border: 1px solid transparent; border-radius: 5px;
+}
+.theme-btn:hover { color: var(--ink); background: var(--hover); }
+.theme-btn:focus-visible { outline: 2px solid var(--pick); outline-offset: 1px; }

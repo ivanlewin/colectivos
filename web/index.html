@@ -5,65 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Colectivos de Buenos Aires, cuadra por cuadra</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="theme.css">
 <style>
-  :root {
-    color-scheme: light;
-    --surface:    #fcfcfb;
-    --plane:      #f9f9f7;
-    --ink:        #0b0b0b;
-    --ink-2:      #52514e;
-    --ink-muted:  #898781;
-    --border:     rgba(11, 11, 11, 0.10);
-    --hover:      rgba(11, 11, 11, 0.05);
-    /* "Ninguna" es un estado, no el escalón más bajo de una magnitud: va en un
-       neutro fuera de la rampa, para que no se lea como "unas pocas líneas". */
-    --n0: #c3c2b7;
-    /* Los cuatro escalones de magnitud: una sola tonalidad, claro -> oscuro. */
-    --n1: #86b6ef;  --n2: #3987e5;  --n3: #1c5cab;  --n4: #0d366b;
-    /* Líneas seleccionadas. Separado de toda la rampa (ΔE CVD 24,7). */
-    --pick: #eb6834;
-  }
-  /* Los valores oscuros van declarados dos veces a propósito: el media query
-     cubre la preferencia del sistema, y el scope [data-theme] cubre la
-     elección explícita del botón, que tiene que poder ganarle en los dos
-     sentidos. El :not() deja que un "claro" explícito le gane al sistema
-     oscuro; el :where() mantiene el media query por debajo en especificidad. */
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) {
-      color-scheme: dark;
-      --surface:   #1a1a19;
-      --plane:     #0d0d0d;
-      --ink:       #ffffff;
-      --ink-2:     #c3c2b7;
-      --ink-muted: #898781;
-      --border:    rgba(255, 255, 255, 0.10);
-      --hover:     rgba(255, 255, 255, 0.07);
-      --n0: #52514e;
-      --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
-      --pick: #d95926;
-    }
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --surface:   #1a1a19;
-    --plane:     #0d0d0d;
-    --ink:       #ffffff;
-    --ink-2:     #c3c2b7;
-    --ink-muted: #898781;
-    --border:    rgba(255, 255, 255, 0.10);
-    --hover:     rgba(255, 255, 255, 0.07);
-    --n0: #52514e;
-    --n1: #184f95;  --n2: #2a78d6;  --n3: #6da7ec;  --n4: #cde2fb;
-    --pick: #d95926;
-  }
-
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-    color: var(--ink);
-    background: var(--plane);
-  }
   #map { position: absolute; inset: 0; }
 
   #panel {
@@ -85,7 +28,7 @@
   h1 { flex: 1; margin: 0 0 2px; font-size: 15px; font-weight: 600; }
   .sub { margin: 0 0 14px; color: var(--ink-2); font-size: 12px; }
 
-  #theme-btn, #collapse-btn {
+  #collapse-btn, #theme-btn {
     flex: none;
     display: grid; place-items: center;
     width: 28px; height: 28px; margin-top: -3px;
@@ -214,7 +157,8 @@
   #ranking-list .rank-barrio { color: var(--ink-muted); }
 
   footer { margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--ink-muted); }
-  footer a { color: inherit; }
+  footer a { color: var(--ink-2); }
+  footer a:hover { color: var(--ink); }
 
   .maplibregl-popup-content {
     padding: 10px 12px;
@@ -277,7 +221,7 @@
 <div id="panel">
   <div class="panel-head">
     <h1>Colectivos, cuadra por cuadra</h1>
-    <button id="theme-btn" type="button"></button>
+    <button id="theme-btn" class="theme-btn" type="button"></button>
     <button id="collapse-btn" type="button" aria-controls="panel-body" aria-expanded="true">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -360,15 +304,15 @@
   </div>
 
   <footer>
-    Recorridos y paradas: GTFS de
-    <a href="https://data.buenosaires.gob.ar/dataset/colectivos-gtfs-frequency">Buenos Aires Data</a>
-    (2019). Callejero y padrón de líneas: Gobierno de la Ciudad, 2026.
     Hacé clic en cualquier cuadra para ver el detalle.
+    <a href="acerca">Cómo leer el mapa, de dónde salen los datos y qué tan
+    confiables son →</a>
   </footer>
   </div>
 </div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="theme.js"></script>
 <script>
 // Cuatro vistas: dos preguntas (¿qué pasa por encima? ¿qué alcanzo a pie?) por
 // dos unidades (líneas o colectivos por hora). Las unidades no ordenan igual —
@@ -511,30 +455,8 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
 
 /* -------------------------------------------------------------------- tema */
 
-// El botón cicla en este orden. Arranca en "system" mientras no haya nada
-// guardado, así respeta la preferencia del sistema sin que nadie la elija.
-const THEME_MODES = ['light', 'dark', 'system'];
-const THEME_LABEL = {
-  light:  'Tema claro',
-  dark:   'Tema oscuro',
-  system: 'Según el sistema',
-};
-const THEME_ICON = {
-  light: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4' +
-         'M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
-  dark:  '<path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.7 6.7 0 0 0 11.1 11.1z"/>',
-  system: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 17v4"/>',
-};
-
-const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
-
-let themeMode = 'system';
-try {
-  const saved = localStorage.getItem('theme');
-  if (THEME_MODES.includes(saved)) themeMode = saved;
-} catch (e) { /* localStorage bloqueado */ }
-
-const isDark = () => themeMode === 'dark' || (themeMode === 'system' && darkMode.matches);
+// El estado y el botón viven en theme.js, compartidos con la página de
+// documentación. Acá sólo se usa isDark() para elegir el mapa base.
 
 const basemap = () => isDark()
   ? 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
@@ -1072,18 +994,6 @@ setCollapsed(narrow.matches);
 
 /* -------------------------------------------------------------- tema (UI) */
 
-const themeBtn = document.getElementById('theme-btn');
-
-function renderThemeButton() {
-  const label = THEME_LABEL[themeMode];
-  themeBtn.innerHTML =
-    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ` +
-    `stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">` +
-    `${THEME_ICON[themeMode]}</svg>`;
-  themeBtn.title = `${label} — clic para cambiar`;
-  themeBtn.setAttribute('aria-label', label);
-}
-
 // El mapa base y los colores no salen del CSS: hay que reaplicarlos a mano
 // cada vez que cambia el tema, porque MapLibre pinta sobre un canvas.
 function repaintForTheme() {
@@ -1093,30 +1003,16 @@ function repaintForTheme() {
     map.setPaintProperty('blocks', 'line-color', colorExpression());
     map.setPaintProperty('blocks-picked', 'line-color', css('--pick'));
     map.setPaintProperty('routes-picked', 'line-color', css('--pick'));
+    if (map.getLayer('barrios')) {
+      map.setPaintProperty('barrios', 'fill-color', colorExpression());
+      map.setPaintProperty('barrios-line', 'line-color', css('--surface'));
+    }
     buildLegend();
   }
 }
 
-function setTheme(mode) {
-  themeMode = mode;
-  if (mode === 'system') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = mode;
-  try { localStorage.setItem('theme', mode); } catch (e) { /* bloqueado */ }
-  renderThemeButton();
-  repaintForTheme();
-}
+const setTheme = initTheme(document.getElementById('theme-btn'), repaintForTheme);
 
-themeBtn.addEventListener('click', () => {
-  const next = (THEME_MODES.indexOf(themeMode) + 1) % THEME_MODES.length;
-  setTheme(THEME_MODES[next]);
-});
-
-// Si el tema quedó atado al sistema, hay que seguirlo cuando cambia.
-darkMode.addEventListener('change', () => {
-  if (themeMode === 'system') repaintForTheme();
-});
-
-renderThemeButton();
 </script>
 </body>
 </html>

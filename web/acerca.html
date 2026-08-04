@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acerca de — Colectivos de Buenos Aires, cuadra por cuadra</title>
+<meta name="description" content="Cómo se construyó el mapa de colectivos de Buenos Aires: fuentes de datos, método, qué significa cada métrica y qué tan confiable es.">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { background: var(--plane); }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header {
+    position: sticky; top: 0; z-index: 2;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    background: var(--plane);
+    border-bottom: 1px solid var(--border);
+  }
+  header .home {
+    flex: 1;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    text-decoration: none;
+  }
+  header .home span { color: var(--ink-muted); font-weight: 400; }
+  header .home:hover span { color: var(--ink-2); }
+
+  h1 { margin: 40px 0 6px; font-size: 26px; line-height: 1.2; font-weight: 600; }
+  .lede { margin: 0 0 8px; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+
+  h2 {
+    margin: 44px 0 12px; padding-top: 20px;
+    font-size: 18px; font-weight: 600;
+    border-top: 1px solid var(--border);
+  }
+  h3 { margin: 26px 0 8px; font-size: 14px; font-weight: 600; }
+
+  p, li { font-size: 14.5px; line-height: 1.65; color: var(--ink-2); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 5px; }
+  strong { color: var(--ink); font-weight: 600; }
+  a { color: var(--ink); text-decoration-color: var(--border); text-underline-offset: 2px; }
+  a:hover { text-decoration-color: var(--ink-muted); }
+
+  code {
+    padding: 1px 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    background: var(--hover);
+    border-radius: 3px;
+  }
+
+  /* Las tablas anchas se desplazan solas en vez de romper el ancho de la
+     página, que es lo que pasaría en un teléfono. */
+  .scroll { overflow-x: auto; margin: 0 0 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td {
+    padding: 7px 12px 7px 0; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--border);
+  }
+  th { font-weight: 600; color: var(--ink); white-space: nowrap; }
+  td { color: var(--ink-2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+
+  .note {
+    margin: 0 0 16px; padding: 12px 14px;
+    font-size: 13.5px; line-height: 1.6; color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--border); border-left: 3px solid var(--pick);
+    border-radius: 0 6px 6px 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* Muestra de la escala de color, con los mismos tokens que usa el mapa. */
+  .ramp { display: flex; gap: 3px; margin: 0 0 8px; }
+  .ramp div { flex: 1; height: 8px; border-radius: 2px; }
+  .ramp-labels {
+    display: flex; justify-content: space-between;
+    margin: 0 0 18px; font-size: 12px; color: var(--ink-muted);
+  }
+
+  footer {
+    margin-top: 56px; padding-top: 18px;
+    font-size: 12.5px; line-height: 1.6; color: var(--ink-muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--ink-2); }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px 60px; }
+    h1 { margin-top: 28px; font-size: 22px; }
+    h2 { margin-top: 34px; font-size: 16px; }
+  }
+</style>
+<script>
+  // Antes de pintar, para que no parpadee el tema al cargar.
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  } catch (e) { /* localStorage bloqueado */ }
+</script>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <a class="home" href="/">← Colectivos, cuadra por cuadra <span>· acerca de</span></a>
+  <button id="theme-btn" class="theme-btn" type="button"></button>
+</header>
+
+<h1>Qué es esto y cómo leerlo</h1>
+<p class="lede">
+  Un mapa de las 31.961 cuadras de la Ciudad de Buenos Aires que dice, para cada
+  una, qué colectivos pasan por su puerta y a cuáles se llega caminando.
+</p>
+<p>
+  La pregunta que lo originó era concreta: <strong>¿dónde conviene vivir si uno
+  quiere no tener colectivos por la puerta pero sí muchos a la vuelta?</strong>
+  No una avenida — una calle a una o dos cuadras de una.
+</p>
+<p>
+  Contestarla exigió tres mediciones distintas y varias correcciones sobre la
+  marcha. Todo el código y los datos están en
+  <a href="https://github.com/ivanlewin/colectivos">GitHub</a>.
+</p>
+
+<h2>Cómo leer el mapa</h2>
+
+<p>
+  El panel tiene cuatro controles. Los dos primeros deciden <em>qué</em> se está
+  midiendo; los otros dos, <em>cómo</em> se lo mira.
+</p>
+
+<h3>Mostrar</h3>
+<ul>
+  <li><strong>Lo que pasa por la cuadra</strong> — el ruido: colectivos que
+    circulan por esa cuadra concreta.</li>
+  <li><strong>Lo que se toma a pie</strong> — el acceso: a qué se llega
+    caminando 400 m, medidos <em>por la red de calles</em>, no en línea recta.</li>
+  <li><strong>Índice de cuadra ideal</strong> — los dos combinados. Ver más
+    abajo.</li>
+</ul>
+
+<h3>Medido en</h3>
+<p>
+  <strong>Cantidad de líneas</strong> o <strong>colectivos por hora</strong>.
+  No es lo mismo y ordenan distinto: una línea que pasa cada 4 minutos y otra
+  cada 40 cuentan igual en la primera unidad y muy distinto en la segunda.
+</p>
+<p>
+  Por cantidad de líneas ganan los centros de trasbordo —Bernardo de Irigoyen en
+  Constitución, Retiro—. Por frecuencia gana <strong>Av. Santa Fe en
+  Palermo</strong>, con 892 colectivos por hora: menos líneas, muchísimo más
+  servicio.
+</p>
+
+<h3>Momento</h3>
+<p>
+  Sólo aparece midiendo en frecuencia, porque la cantidad de líneas que pasan
+  por una cuadra no cambia con la hora. Lo que cambia es cuántas están
+  circulando, y cambia muchísimo:
+</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Momento</th><th class="num">Colectivos/hora en la red</th></tr></thead>
+  <tbody>
+    <tr><td>Día hábil, 08:00</td><td class="num">4.903</td></tr>
+    <tr><td>Día hábil, 22:00</td><td class="num">2.468</td></tr>
+    <tr><td>Domingo, 12:00</td><td class="num">2.393</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+  <strong>La red se parte al medio</strong> fuera del pico. Y el matiz importa:
+  la cantidad de cuadras con algún servicio casi no cambia (13.050 a 12.708). No
+  es que el colectivo deje de pasar, es que pasa la mitad de seguido.
+</p>
+
+<h3>Detalle</h3>
+<p>
+  <strong>Cuadra por cuadra</strong> para buscar una dirección concreta;
+  <strong>promedio por barrio</strong> para la vista de conjunto. Los 48
+  polígonos responden "qué barrios están mejor y peor conectados", que a nivel
+  cuadra se pierde en el detalle.
+</p>
+<p>
+  Cada capa tiene su propia escala, porque los promedios viven en otro rango:
+  2,4 líneas contra 29. Con la escala de cuadras, los 48 barrios quedarían
+  apretados en la clase más baja.
+</p>
+
+<h3>La escala de color</h3>
+<div class="ramp">
+  <div style="background: var(--n0)"></div>
+  <div style="background: var(--n1)"></div>
+  <div style="background: var(--n2)"></div>
+  <div style="background: var(--n3)"></div>
+  <div style="background: var(--n4)"></div>
+</div>
+<div class="ramp-labels"><span>ninguna</span><span>más</span></div>
+<p>
+  El primer escalón está fuera de la rampa a propósito: "ninguna" es un estado,
+  no el valor más bajo de una magnitud, y en un neutro no se lee como "unas
+  pocas líneas". El grosor de la línea repite la misma escala que el color —
+  codificación redundante, porque a escala de ciudad las 18.637 cuadras sin
+  colectivo tapan todo y los corredores tienen que leerse sin distinguir tonos.
+</p>
+
+<h2>El índice de cuadra ideal</h2>
+
+<p>Es la respuesta a la pregunta original, en un solo número de 0 a 100:</p>
+
+<div class="note">
+  <p><code>puntaje = max(0, acceso − peso × ruido) × 100</code></p>
+</div>
+
+<p>
+  El <strong>ruido</strong> tiene dos fuentes y se toma la peor: los colectivos
+  que pasan por la cuadra, y el tránsito general. Alcanza con que una de las dos
+  cosas sea cierta — una avenida sin colectivos sigue siendo una avenida, y un
+  pasaje con diez líneas encima sigue siendo ruidoso.
+</p>
+<p>
+  El tránsito general se estima con la <strong>velocidad máxima legal</strong>
+  de cada tipo de vía, que sale del Código de Tránsito de la Ciudad
+  (<a href="https://juristeca.jusbaires.gob.ar/compilacion-normativa-juristeca/ley-2148/tit-6/">Ley 2148, art. 6.2.2</a>).
+  Es un dato externo al análisis y ordena exactamente lo que hay que ordenar:
+</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Tipo de vía</th><th class="num">Máxima</th><th class="num">Ruido</th></tr></thead>
+  <tbody>
+    <tr><td>Pasajes, peatonales</td><td class="num">20 km/h</td><td class="num">0,00</td></tr>
+    <tr><td>Calles y colectoras</td><td class="num">40 km/h</td><td class="num">0,25</td></tr>
+    <tr><td>Avenidas</td><td class="num">60 km/h</td><td class="num">0,50</td></tr>
+    <tr><td>Autopistas</td><td class="num">100 km/h</td><td class="num">1,00</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+  Diez vías tienen límite propio y ganan sobre la regla general — la Av.
+  Intendente Cantilo figura como <code>CALLE</code> en el callejero y es una vía
+  rápida de 100.
+</p>
+
+<div class="note">
+  <p>
+    <strong>Por qué el peso es un control y no un número.</strong> Cuánto
+    molesta el ruido no es un dato: es una preferencia. Fijarlo sería inventar
+    una respuesta. Con peso 0 quedan 3.050 cuadras sobre 60 puntos; con peso 2,
+    apenas 48.
+  </p>
+</div>
+
+<p>
+  Con el peso en 1, el ranking lo encabezan <strong>pasajes</strong>: Ciudadela
+  en Constitución, Corina Kavanagh en Retiro —a media cuadra de Plaza San
+  Martín—, Carabelas en San Nicolás. Bajando el peso a 0,5 vuelven a aparecer
+  calles: Beruti y Godoy Cruz en Palermo.
+</p>
+
+<h2>De dónde salen los datos</h2>
+
+<p>Todas las fuentes son del Gobierno de la Ciudad o del Estado nacional.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Fuente</th><th>Fecha</th><th>Para qué</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><a href="https://data.buenosaires.gob.ar/dataset/calles">Callejero</a></td>
+      <td>jul 2026</td>
+      <td>La unidad de análisis: 31.961 cuadras, una por tramo entre esquinas</td>
+    </tr>
+    <tr>
+      <td><a href="https://data.buenosaires.gob.ar/dataset/colectivos-paradas">Paradas de colectivo</a></td>
+      <td>jun 2026</td>
+      <td>Qué líneas paran dónde. La fuente más actual</td>
+    </tr>
+    <tr>
+      <td><a href="https://data.buenosaires.gob.ar/dataset/colectivos-gtfs-frequency">GTFS de colectivos</a></td>
+      <td>2019</td>
+      <td>Geometría de los recorridos y frecuencias</td>
+    </tr>
+    <tr>
+      <td><a href="https://data.buenosaires.gob.ar/dataset/barrios">Barrios</a></td>
+      <td>—</td>
+      <td>Los 48 polígonos de la vista agregada</td>
+    </tr>
+    <tr>
+      <td><a href="https://epok.buenosaires.gob.ar/">EPOK</a></td>
+      <td>actual</td>
+      <td>Padrón de líneas, como control</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <p>
+    <strong>El GTFS es de 2019 y es el límite del proyecto.</strong> Es lo más
+    nuevo que existe con geometría usable: los datasets GTFS del portal figuran
+    como suspendidos y la API de Transporte Público está de baja. Todo lo que
+    sigue son maneras de compensarlo con fuentes vigentes.
+  </p>
+</div>
+
+<h2>Cómo se construyó</h2>
+
+<h3>Paso A — qué pasa por cada cuadra</h3>
+<p>
+  No alcanza con preguntar "¿hay una traza cerca?": en cada esquina eso
+  contamina la calle transversal. El método muestrea la cuadra cada 10 m,
+  descarta los 15 m de cada punta —la zona de la esquina— y exige que la traza
+  sea <strong>paralela</strong> a la cuadra. Una línea se atribuye si cumple
+  todo eso en al menos el 60 % de las muestras.
+</p>
+<p>
+  El primer intento usó el dataset de recorridos de EPOK y no sirvió: sus
+  vértices están a 261 m de distancia mediana cuando una cuadra mide 110 m, así
+  que la traza corta manzanas por el medio. El GTFS tiene 55 m y sí sigue las
+  calles.
+</p>
+
+<h3>Paso B — a qué se llega caminando</h3>
+<p>
+  Medir el acceso en línea recta es cómodo y está mal: un radio de 400 m en
+  Caballito atraviesa las vías del Sarmiento, uno en Barracas cruza el
+  Riachuelo. Por eso se arma un <strong>grafo peatonal</strong> con el callejero
+  —cada cuadra una arista, cada esquina un nodo— y se corre un Dijkstra desde
+  las paradas de cada línea y sentido.
+</p>
+
+<h3>Paso C — el índice</h3>
+<p>
+  Combina los dos anteriores con el ruido de tránsito, como se explicó arriba.
+</p>
+
+<h2>Qué tan confiable es</h2>
+
+<p>
+  Las paradas vigentes permiten medir el error del método: si hay una parada de
+  la línea 145 en Jufré 210, la 145 pasa por esa cuadra; si la atribución no la
+  tiene, le erramos.
+</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Sobre 11.293 pares parada-línea</th><th class="num"></th></tr></thead>
+  <tbody>
+    <tr><td>La cuadra ya tenía esa línea</td><td class="num"><strong>91,4 %</strong></td></tr>
+    <tr><td>No la tenía</td><td class="num">8,6 %</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>
+  El error restante se concentra en tres líneas que el GTFS 2019 directamente no
+  tiene —119, 145 y 164— y en unas pocas cuyo recorrido cambió, como la 8. Para
+  ésas, el recorrido se <strong>reconstruye</strong> uniendo sus paradas por el
+  camino más corto sobre la red de calles. Medida contra las líneas que el GTFS
+  sí describe bien, esa reconstrucción acierta el <strong>89 %</strong>; como es
+  una inferencia y no un dato, se aplica sólo a las 6 líneas que lo necesitan y
+  el panel lo aclara cuando se selecciona una.
+</p>
+
+<h2>Lo que el mapa no sabe</h2>
+
+<ul>
+  <li>
+    <strong>Mide accesibilidad, no habitabilidad.</strong> No sabe nada de
+    seguridad, precio, servicios ni ruido de otras fuentes. Una cuadra puede
+    puntuar 100 y ser un mal lugar para vivir por razones que esto no ve.
+  </li>
+  <li>
+    <strong>Las cuadras del borde están subestimadas.</strong> Las pegadas a la
+    General Paz o al Riachuelo tienen medio radio de caminata fuera de la
+    Ciudad, donde no hay datos. Se intentó completarlo con las paradas del
+    conurbano y no funciona: el callejero termina en el límite, así que aunque
+    la parada exista no hay por dónde caminar hasta ella.
+  </li>
+  <li>
+    <strong>No detecta sobrantes.</strong> Si el GTFS dice que una línea pasa
+    por una calle de la que ya se fue, ni las paradas ni la reconstrucción lo
+    desmienten: las dos fuentes sólo agregan.
+  </li>
+  <li>
+    <strong>El radio de 400 m es una convención</strong>, no un dato. Con 300 m
+    el ranking se concentra más en el microcentro; con 800 m se aplana.
+  </li>
+  <li>
+    <strong>La velocidad máxima es un proxy.</strong> Una calle de 40 km/h puede
+    ser un embudo de tránsito. Medir tránsito real necesitaría otra fuente.
+  </li>
+</ul>
+
+<footer>
+  Código, datos y documentación larga en
+  <a href="https://github.com/ivanlewin/colectivos">github.com/ivanlewin/colectivos</a>.
+  Mapa base © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+  y © <a href="https://carto.com/attributions">CARTO</a>, dibujado con MapLibre.
+</footer>
+
+</div>
+
+<script src="theme.js"></script>
+<script>
+  initTheme(document.getElementById('theme-btn'));
+</script>
+</body>
+</html>
