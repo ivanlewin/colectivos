@@ -69,6 +69,13 @@ MIN_SAMPLE_RATIO = 0.6
 # Una parada está sobre la vereda, así que media calzada de margen alcanza.
 STOP_SNAP_M = 30
 
+# Debajo de esta cobertura de sus propias paradas, se considera que el GTFS
+# 2019 ya no describe bien a esa línea y se le incorpora el recorrido
+# reconstruido. Por encima, el GTFS es mejor fuente y se lo deja solo.
+GTFS_COVERAGE_THRESHOLD = 0.7
+
+STOP_ROUTES_CSV = common.ROOT / "output" / "stop_routes.csv"
+
 
 def epok_line_roster():
     """Números de línea del padrón vigente de EPOK."""
@@ -163,6 +170,64 @@ def stops_to_blocks(block_geometries, block_ids, block_names, to_metric):
             continue
         by_block[block_ids[index]].update(line for line, _sentido in services)
     return by_block
+
+
+def merge_current_data(rows, stops_by_block):
+    """Corrige el resultado geométrico con las fuentes vigentes de 2026.
+
+    Dos correcciones, con distinto nivel de confianza:
+
+    1. **Las paradas.** Si hay una parada de la línea X sobre la cuadra, X pasa
+       por la cuadra. Es evidencia directa y se aplica siempre.
+
+    2. **El recorrido reconstruido** entre paradas (12_reconstruct_routes.py).
+       Es una inferencia, no un dato, y medida contra las líneas que el GTFS sí
+       cubre bien da ~84 % de precisión. Por eso se aplica **sólo a las líneas
+       que el GTFS 2019 no describe bien**: donde el GTFS anda, es mejor
+       fuente, y agregarle la reconstrucción sólo puede meter ruido.
+
+    El criterio de "no describe bien" es la cobertura de sus propias paradas:
+    qué fracción de las cuadras donde la línea para ya la tenía el método
+    geométrico.
+    """
+    by_block = {row["block_id"]: row for row in rows}
+
+    # --- cobertura del GTFS por línea, medida en sus paradas ---
+    covered = collections.Counter()
+    total = collections.Counter()
+    for block_id, lines in stops_by_block.items():
+        row = by_block.get(block_id)
+        if row is None:
+            continue
+        for line in lines:
+            total[line] += 1
+            if line in row["_gtfs"]:
+                covered[line] += 1
+
+    stale = {line for line in total
+             if covered[line] / total[line] < GTFS_COVERAGE_THRESHOLD}
+
+    # --- aplicar ---
+    reconstructed = collections.defaultdict(set)
+    if STOP_ROUTES_CSV.exists():
+        with STOP_ROUTES_CSV.open(encoding="utf-8") as fh:
+            for entry in csv.DictReader(fh):
+                block_id = int(entry["block_id"])
+                for code in entry["lines"].split():
+                    line = int(code)
+                    if line in stale:
+                        reconstructed[block_id].add(line)
+
+    for row in rows:
+        block_id = row["block_id"]
+        final = (set(row["_gtfs"])
+                 | stops_by_block.get(block_id, set())
+                 | reconstructed.get(block_id, set()))
+        row["lines_gtfs"] = " ".join(f"{n:03d}" for n in sorted(row.pop("_gtfs")))
+        row["lines"] = " ".join(f"{n:03d}" for n in sorted(final))
+        row["n_lines"] = len(final)
+
+    return stale, total, covered
 
 
 def sample_block(coords):
@@ -285,12 +350,6 @@ def main():
         lines_here = {service[s][0] for s in matched_shapes}
         buses_here = sum(service[s][1] for s in matched_shapes)
 
-        # Si hay una parada vigente de una línea sobre esta cuadra, la línea
-        # pasa por acá, diga lo que diga el GTFS de 2019. Ver stops_by_block().
-        from_stops = stops_by_block.get(props["id"], set())
-        lines_gtfs = sorted(lines_here)
-        lines_here = sorted(lines_here | from_stops)
-
         rows.append({
             "block_id": props["id"],
             "street": props["nomoficial"],
@@ -298,16 +357,25 @@ def main():
             "tipo_c": props["tipo_c"],
             "red_jerarq": props["red_jerarq"],
             "length_m": round(props["long"], 1),
-            "n_lines": len(lines_here),
-            "lines": " ".join(f"{n:03d}" for n in lines_here),
-            # Sólo lo que encontró el método geométrico sobre el GTFS 2019,
-            # sin el parche de las paradas. Lo usa 11_validate_stops.py: si
-            # validara contra la columna parcheada, se estaría midiendo a sí
-            # mismo y daría 100 % siempre.
-            "lines_gtfs": " ".join(f"{n:03d}" for n in lines_gtfs),
             "n_shapes": len(matched_shapes),
             "buses_hour": round(buses_here, 1),
+            # Sólo lo que encontró el método geométrico sobre el GTFS 2019.
+            # Las correcciones con datos vigentes se aplican después, en
+            # merge_current_data(), para poder medir una contra la otra.
+            "_gtfs": lines_here,
         })
+
+    common.heading("Corrección con las fuentes vigentes de 2026")
+    stale, stop_total, stop_covered = merge_current_data(rows, stops_by_block)
+    print(f"Líneas con menos del {GTFS_COVERAGE_THRESHOLD:.0%} de sus paradas "
+          f"cubiertas por el GTFS 2019: {len(stale)} de {len(stop_total)}")
+    print("A ésas se les incorpora el recorrido reconstruido; al resto no.\n")
+    for line in sorted(stale, key=lambda n: stop_covered[n] / stop_total[n]):
+        share = stop_covered[line] / stop_total[line]
+        print(f"   línea {line:3d}: el GTFS cubre {share:4.0%} de sus "
+              f"{stop_total[line]:3d} paradas")
+    if not STOP_ROUTES_CSV.exists():
+        print("\n   (falta output/stop_routes.csv — corré 12_reconstruct_routes.py)")
 
     with OUTPUT_CSV.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=list(rows[0]))

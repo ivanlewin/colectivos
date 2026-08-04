@@ -110,6 +110,7 @@ también corre solo:
 | [09_walking_access.py](scripts/09_walking_access.py) | **Paso B**: a cuántas líneas se llega caminando 400 m por la red de calles. |
 | [10_ideal_blocks.py](scripts/10_ideal_blocks.py) | **Paso C**: el índice de cuadra ideal y sus constantes de normalización. |
 | [11_validate_stops.py](scripts/11_validate_stops.py) | ¿Cuánto le erramos? Mide la atribución contra las paradas vigentes. |
+| [12_reconstruct_routes.py](scripts/12_reconstruct_routes.py) | Reconstruye el recorrido de las líneas que faltan en el GTFS, uniendo sus paradas. Va **antes** del 07. |
 | [08_build_web_data.py](scripts/08_build_web_data.py) | Prepara los GeoJSON que consume la página. Va último. |
 | [serve.sh](scripts/serve.sh) | Levanta la visualización en localhost. |
 | [common.py](scripts/common.py) | Rutas, carga del dataset, CRS y frecuencias del GTFS. |
@@ -289,12 +290,28 @@ transversal. Se resuelve comparando el nombre de calle que trae la parada, por
 conjuntos de palabras para que `RAUL SCALABRINI ORTIZ AV.` y `SCALABRINI ORTIZ,
 RAUL AV.` sean la misma.
 
+### 2026-08-03 — Reconstruir el recorrido de las líneas que faltaban
+
+El parche de paradas tapaba el agujero sólo donde había parada: la 145 se veía
+punteada, 152 cuadras sueltas. Ahora se reconstruye el recorrido uniendo cada
+par de paradas cercanas de la misma línea y sentido por el camino más corto
+sobre la red circulable, con tres topes para no inventar (500 m entre paradas,
+750 m de camino, 1,8× la línea recta).
+
+Medida contra las líneas que el GTFS sí describe bien, la reconstrucción tiene
+**84 % de precisión**. Como es una inferencia y no un dato, se aplica **sólo a
+las 11 líneas que el GTFS 2019 no describe bien** —criterio objetivo: menos del
+70 % de sus paradas cubiertas—. Las otras 126 quedan intactas.
+→ [docs/08-route-reconstruction.md](docs/08-route-reconstruction.md)
+
+El mapa pasa a **137 líneas** y 13.324 cuadras con servicio; la 145 de 152
+cuadras punteadas a 484 continuas. Las ocho líneas reconstruidas ya aparecen en
+el desplegable, con un aviso en el panel para no presentarlas como dato duro.
+
 Próximos pasos, en orden:
 
 - [ ] Pasar el Paso B a las paradas vigentes en vez de las del GTFS 2019.
       Necesita resolver de dónde salen las frecuencias, que ese dataset no trae.
-- [ ] Reconstruir el recorrido de las líneas ausentes del GTFS uniendo sus
-      paradas por el grafo de calles: hoy se ven punteadas, no como traza.
 - [ ] Corregir el sesgo de borde: las paradas del conurbano se descartan, así
       que las cuadras pegadas a la General Paz y al Riachuelo quedan
       subestimadas.

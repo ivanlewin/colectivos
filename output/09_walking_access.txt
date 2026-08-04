@@ -81,6 +81,6 @@ Sin colectivo encima, ordenadas por colectivos por hora a pie:
     25 líneas ·   1056 col/h   GURRUCHAGA                   Palermo
     25 líneas ·   1045 col/h   GUEMES                       Palermo
 
-Hay 16884 cuadras sin colectivo encima; 425 tienen 20 o más líneas a pie.
+Hay 16644 cuadras sin colectivo encima; 409 tienen 20 o más líneas a pie.
 
 Escrito output/blocks_access.csv

@@ -110,9 +110,9 @@ Sensibilidad al peso del ruido
 Cuántas cuadras superan 60 puntos, y qué barrios encabezan:
 
    peso 0.0 ->  3050 cuadras sobre 60   | top 40: Retiro, Palermo
-   peso 0.5 ->   929 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
-   peso 1.0 ->   328 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
-   peso 1.5 ->   149 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
+   peso 0.5 ->   922 cuadras sobre 60   | top 40: Retiro, San Nicolas, Balvanera
+   peso 1.0 ->   324 cuadras sobre 60   | top 40: Retiro, Flores, Liniers
+   peso 1.5 ->   146 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
    peso 2.0 ->    52 cuadras sobre 60   | top 40: Caballito, Flores, Nueva Pompeya
 
 Escrito output/ideal_blocks.csv

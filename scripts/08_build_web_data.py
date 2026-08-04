@@ -171,13 +171,43 @@ def build_routes():
                 LineString(coords).simplify(SIMPLIFY_DEG)
             )
 
+    # Las líneas que el GTFS 2019 no tiene no pueden salir de sus trazas. Para
+    # ésas se dibuja el recorrido que reconstruyó 12_reconstruct_routes.py,
+    # uniendo las cuadras que se les atribuyeron. Es menos suave que una traza
+    # GTFS —son segmentos de callejero pegados— pero es el recorrido real.
+    from_blocks = collections.defaultdict(list)
+    if BLOCKS_CSV.exists():
+        attributed = collections.defaultdict(set)
+        with BLOCKS_CSV.open(encoding="utf-8") as fh:
+            for row in csv.DictReader(fh):
+                for code in row["lines"].split():
+                    attributed[int(code)].add(int(row["block_id"]))
+
+        missing = {n for n in attributed if n not in by_line}
+        if missing:
+            geometry_by_block = {
+                f["properties"]["id"]: f["geometry"]["coordinates"]
+                for f in json.loads(STREETS.read_text(encoding="utf-8"))["features"]
+            }
+            for number in missing:
+                for block_id in attributed[number]:
+                    coords = geometry_by_block.get(block_id)
+                    if coords and len(coords) > 1:
+                        from_blocks[number].append(LineString(coords))
+
     features = []
-    for number in sorted(by_line):
-        merged = linemerge(by_line[number])
+    for number in sorted(set(by_line) | set(from_blocks)):
+        pieces = by_line.get(number) or from_blocks[number]
+        merged = linemerge(pieces)
         features.append({
             "type": "Feature",
             "geometry": round_coords(mapping(merged)),
-            "properties": {"linea": f"{number:03d}", "n": number},
+            "properties": {
+                "linea": f"{number:03d}",
+                "n": number,
+                # De dónde salió la geometría, para poder avisarlo en la página.
+                "src": "gtfs" if number in by_line else "paradas",
+            },
         })
     return {"type": "FeatureCollection", "features": features}
 
@@ -214,7 +244,8 @@ def main():
 
     lines = [
         {"linea": f["properties"]["linea"],
-         "cuadras": blocks_per_line.get(f["properties"]["linea"], 0)}
+         "cuadras": blocks_per_line.get(f["properties"]["linea"], 0),
+         "src": f["properties"]["src"]}
         for f in routes["features"]
     ]
     path = WEB_DATA / "lines.json"

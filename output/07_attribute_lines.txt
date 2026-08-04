@@ -21,25 +21,43 @@ ignorando 15 m en cada esquina, mínimo 60% de muestras.
    30000/31961 cuadras procesadas
 
 ======================================================================
+Corrección con las fuentes vigentes de 2026
+======================================================================
+Líneas con menos del 70% de sus paradas cubiertas por el GTFS 2019: 11 de 137
+A ésas se les incorpora el recorrido reconstruido; al resto no.
+
+   línea  99: el GTFS cubre   0% de sus  87 paradas
+   línea 164: el GTFS cubre   0% de sus  35 paradas
+   línea   5: el GTFS cubre   0% de sus   3 paradas
+   línea   6: el GTFS cubre   0% de sus  86 paradas
+   línea 175: el GTFS cubre   0% de sus   1 paradas
+   línea 112: el GTFS cubre   0% de sus   1 paradas
+   línea 145: el GTFS cubre   0% de sus 152 paradas
+   línea 119: el GTFS cubre   0% de sus  53 paradas
+   línea   8: el GTFS cubre  48% de sus 192 paradas
+   línea 179: el GTFS cubre  50% de sus   2 paradas
+   línea 166: el GTFS cubre  67% de sus  70 paradas
+
+======================================================================
 Resultado
 ======================================================================
-Cuadras sin ninguna línea  : 18923 (59.2%)
-Cuadras con al menos una   : 13038 (40.8%)
+Cuadras sin ninguna línea  : 18637 (58.3%)
+Cuadras con al menos una   : 13324 (41.7%)
 Máximo de líneas en una cuadra: 29
 
 Distribución:
-    0 líneas:  18923 cuadras
-    1 líneas:   4754 cuadras
-    2 líneas:   2717 cuadras
-    3 líneas:   1750 cuadras
-    4 líneas:   1245 cuadras
-    5 líneas:    704 cuadras
-    6 líneas:    481 cuadras
-    7 líneas:    379 cuadras
-    8 líneas:    219 cuadras
-    9 líneas:    183 cuadras
-   10 líneas:    130 cuadras
-   11 líneas:     88 cuadras
+    0 líneas:  18637 cuadras
+    1 líneas:   4904 cuadras
+    2 líneas:   2718 cuadras
+    3 líneas:   1761 cuadras
+    4 líneas:   1262 cuadras
+    5 líneas:    739 cuadras
+    6 líneas:    477 cuadras
+    7 líneas:    413 cuadras
+    8 líneas:    228 cuadras
+    9 líneas:    190 cuadras
+   10 líneas:    143 cuadras
+   11 líneas:     96 cuadras
 
 Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
    mediana : 30.0
@@ -48,24 +66,24 @@ Colectivos por hora (día hábil, 08:00), en las cuadras que tienen:
 
 Control de calidad — promedio por jerarquía de vía:
                                          líneas  col/hora
-   VÍA DISTRIBUIDORA PRINCIPAL             4.69     96.91  (3956 cuadras)
+   VÍA DISTRIBUIDORA PRINCIPAL             4.79     96.91  (3956 cuadras)
    VÍA TRONCAL                             3.29     48.23  (995 cuadras)
-   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.58     26.25  (3965 cuadras)
-   VÍA LOCAL                               0.58      8.23  (23044 cuadras)
+   VÍA DISTRIBUIDORA COMPLEMENTARIA        1.65     26.25  (3965 cuadras)
+   VÍA LOCAL                               0.60      8.23  (23044 cuadras)
    None                                    0.00      0.00  (1 cuadras)
 Las troncales tienen que estar arriba y las vías locales abajo.
 
 Las 10 cuadras con más líneas:
    29 líneas · 534.5 col/h  IRIGOYEN, BERNARDO DE        Constitucion
    28 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   27 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   27 líneas · 370.6 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
    27 líneas · 253.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   27 líneas · 401.9 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
+   27 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
    26 líneas · 431.7 col/h  SAN MARTIN                   Retiro
    26 líneas · 418.5 col/h  HORNOS, GRAL.                Constitucion
    26 líneas · 402.9 col/h  ANTARTIDA ARGENTINA AV.      Retiro
-   26 líneas · 401.9 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
-   26 líneas · 431.7 col/h  SAN MARTIN                   Retiro
-   26 líneas · 375.7 col/h  RAMOS MEJIA, JOSE MARIA, DR. AV. Retiro
 
 Las 10 cuadras con más colectivos por hora:
    22 líneas · 892.2 col/h  SANTA FE AV.                 Palermo

@@ -41,9 +41,18 @@ if "$PY" -c "import pyproj" 2>/dev/null; then
   # Compara las fuentes de geometría; avisa solo si falta alguna descarga.
   run_step 05_geometry_quality.py
   run_step 06_gtfs_freshness.py
+  # Los números son el orden en que se escribieron los scripts, no el de
+  # ejecución. La cadena del análisis es ésta:
+  #
+  #   12  reconstruye recorridos desde las paradas     -> stop_routes.csv
+  #   07  atribuye líneas a cuadras y las corrige      -> blocks_lines.csv
+  #   09  acceso caminando                             -> blocks_access.csv
+  #   10  índice de cuadra ideal                       -> ideal_blocks.csv
+  #   11  mide el error contra las paradas vigentes
+  #   08  arma los archivos de la página               -> web/data/
+  run_step 12_reconstruct_routes.py
   # El paso 07 tarda un par de minutos: cruza 31.961 cuadras con las trazas.
   run_step 07_attribute_lines.py
-  # El 09 y el 10 van antes del 08 porque la página consume su resultado.
   run_step 09_walking_access.py
   run_step 10_ideal_blocks.py
   run_step 11_validate_stops.py

@@ -165,6 +165,7 @@
   /* Sin selección no reserva espacio: en 375 px de alto ese hueco se nota. */
   #pick-info:empty { display: none; }
   #pick-info b { color: var(--ink); font-weight: 600; }
+  #pick-info .warn { color: var(--ink-muted); }
 
   .section { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
   .section h2 { margin: 0 0 9px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
@@ -686,7 +687,13 @@ function applySelection() {
   } else if (codes.length === 1) {
     const line = allLines.find(l => l.linea === codes[0]);
     pickerValue.textContent = `Línea ${Number(codes[0])}`;
-    pickInfo.innerHTML = `Recorre <b>${line ? line.cuadras : '?'}</b> cuadras de la Ciudad.`;
+    // Para ocho líneas el GTFS de 2019 no tiene traza y el recorrido está
+    // reconstruido uniendo sus paradas vigentes. Conviene decirlo.
+    pickInfo.innerHTML =
+      `Recorre <b>${line ? line.cuadras : '?'}</b> cuadras de la Ciudad.` +
+      (line && line.src === 'paradas'
+        ? ' <span class="warn">Recorrido reconstruido a partir de sus paradas.</span>'
+        : '');
   } else {
     pickerValue.textContent = `${codes.length} líneas`;
     const shown = codes.slice().sort().map(Number);
