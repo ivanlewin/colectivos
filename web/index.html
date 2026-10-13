@@ -458,11 +458,15 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
 /* -------------------------------------------------------------------- tema */
 
 // El estado y el botón viven en theme.js, compartidos con la página de
-// documentación. Acá sólo se usa isDark() para elegir el mapa base.
+// documentación. Acá sólo se usa isDark() para ajustar el mapa base.
 
-const basemap = () => isDark()
-  ? 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-  : 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+// Tiles públicos de OpenStreetMap: sin cuenta ni API key. El navegador
+// conserva el Referer y respeta el caché del servidor; no precargamos tiles.
+const basemap = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const basemapPaint = () => ({
+  'raster-saturation': -0.85,
+  'raster-brightness-max': isDark() ? 0.28 : 1,
+});
 
 function colorExpression() {
   const expr = ['step', view().value(), css(CLASS_STYLE[0].varName)];
@@ -499,12 +503,13 @@ const map = new maplibregl.Map({
     sources: {
       base: {
         type: 'raster',
-        tiles: [basemap()],
+        tiles: [basemap],
         tileSize: 256,
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxzoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     },
-    layers: [{ id: 'base', type: 'raster', source: 'base' }],
+    layers: [{ id: 'base', type: 'raster', source: 'base', paint: basemapPaint() }],
   },
 });
 
@@ -1000,7 +1005,9 @@ setCollapsed(narrow.matches);
 // cada vez que cambia el tema, porque MapLibre pinta sobre un canvas.
 function repaintForTheme() {
   if (!map.getSource('base')) return;
-  map.getSource('base').setTiles([basemap()]);
+  for (const [property, value] of Object.entries(basemapPaint())) {
+    map.setPaintProperty('base', property, value);
+  }
   if (map.getLayer('blocks')) {
     map.setPaintProperty('blocks', 'line-color', colorExpression());
     map.setPaintProperty('blocks-picked', 'line-color', css('--pick'));
